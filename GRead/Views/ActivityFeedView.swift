@@ -1,9 +1,15 @@
 import SwiftUI
+
 struct ActivityFeedView: View {
     @State private var activities: [Activity] = []
     @State private var isLoading = false
     @State private var showingNewPost = false
     @State private var errorMessage: String?
+    @State private var page = 1
+    @State private var hasMorePages = true
+    @State private var selectedActivity: Activity?
+    @State private var showingUserProfile = false
+    @State private var selectedUserId: Int?
     
     var body: some View {
         NavigationView {
@@ -23,18 +29,43 @@ struct ActivityFeedView: View {
                             .foregroundColor(.gray)
                     }
                 } else {
-                    List(activities) { activity in
-                        ActivityRowView(activity: activity)
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    deleteActivity(activity)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                    List {
+                        ForEach(activities) { activity in
+                            ActivityRowView(
+                                activity: activity,
+                                onUserTap: { userId in
+                                    selectedUserId = userId
+                                    showingUserProfile = true
+                                },
+                                onReport: {
+                                    selectedActivity = activity
+                                }
+                            )
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if activity.userId == AuthManager.shared.currentUser?.id {
+                                    Button(role: .destructive) {
+                                        deleteActivity(activity)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
                             }
+                            
+                            // Load more when reaching the last item
+                            if activity.id == activities.last?.id && hasMorePages && !isLoading {
+                                ProgressView()
+                                    .onAppear {
+                                        Task {
+                                            await loadMoreActivities()
+                                        }
+                                    }
+                            }
+                        }
                     }
                     .listStyle(.plain)
                     .refreshable {
+                        page = 1
+                        hasMorePages = true
                         await loadActivities()
                     }
                 }
@@ -53,12 +84,40 @@ struct ActivityFeedView: View {
             .sheet(isPresented: $showingNewPost) {
                 NewActivityView(onPost: {
                     Task {
+                        page = 1
+                        hasMorePages = true
                         await loadActivities()
                     }
                 })
             }
+            .sheet(isPresented: $showingUserProfile) {
+                if let userId = selectedUserId {
+                    UserProfileView(userId: userId)
+                }
+            }
+            .alert("Report Activity", isPresented: Binding(
+                get: { selectedActivity != nil },
+                set: { if !$0 { selectedActivity = nil } }
+            )) {
+                if let activity = selectedActivity {
+                    Button("Spam", role: .destructive) {
+                        reportActivity(activity, reason: "spam")
+                    }
+                    Button("Inappropriate Content", role: .destructive) {
+                        reportActivity(activity, reason: "inappropriate")
+                    }
+                    Button("Harassment", role: .destructive) {
+                        reportActivity(activity, reason: "harassment")
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
+            } message: {
+                Text("Why are you reporting this post?")
+            }
             .task {
-                await loadActivities()
+                if activities.isEmpty {
+                    await loadActivities()
+                }
             }
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
@@ -77,28 +136,41 @@ struct ActivityFeedView: View {
         errorMessage = nil
         
         do {
-            print("📱 Loading activities...")
             let response: ActivityResponse = try await APIManager.shared.request(
-                endpoint: "/activity?per_page=20"
+                endpoint: "/activity?per_page=20&page=\(page)"
             )
-            print("✅ Loaded \(response.activities.count) activities")
-            await MainActor.run {
-                activities = response.activities
-                isLoading = false
+            
+            // Debug: Print first activity to see what data we're getting
+            if let first = response.activities.first {
+                print("🔍 Activity debug:")
+                print("  - ID: \(first.id)")
+                print("  - userId: \(first.userId ?? -1)")
+                print("  - displayName: \(first.displayName ?? "nil")")
+                print("  - userLogin: \(first.userLogin ?? "nil")")
+                print("  - content: \(first.content ?? "nil")")
             }
-        } catch let error as APIError {
-            print("❌ API Error: \(error.localizedDescription)")
+            
             await MainActor.run {
-                errorMessage = error.localizedDescription
+                if page == 1 {
+                    activities = response.activities
+                } else {
+                    activities.append(contentsOf: response.activities)
+                }
+                hasMorePages = response.hasMoreItems ?? false
                 isLoading = false
             }
         } catch {
-            print("❌ Unknown error: \(error)")
             await MainActor.run {
                 errorMessage = "Failed to load activities: \(error.localizedDescription)"
                 isLoading = false
             }
         }
+    }
+    
+    private func loadMoreActivities() async {
+        guard !isLoading && hasMorePages else { return }
+        page += 1
+        await loadActivities()
     }
     
     private func deleteActivity(_ activity: Activity) {
@@ -118,10 +190,85 @@ struct ActivityFeedView: View {
             }
         }
     }
+    
+    private func reportActivity(_ activity: Activity, reason: String) {
+        selectedActivity = nil // Dismiss the alert
+        
+        Task {
+            do {
+                // Try to get user ID from various sources
+                var userId: Int?
+                
+                if let uid = activity.userId {
+                    userId = uid
+                    print("📢 Found userId: \(uid)")
+                } else if let itemId = activity.itemId {
+                    userId = itemId
+                    print("📢 Using itemId as userId: \(itemId)")
+                } else if let secondaryItemId = activity.secondaryItemId {
+                    userId = secondaryItemId
+                    print("📢 Using secondaryItemId as userId: \(secondaryItemId)")
+                }
+                
+                guard let finalUserId = userId else {
+                    await MainActor.run {
+                        errorMessage = "Cannot report: User ID not found. Activity ID: \(activity.id)"
+                    }
+                    print("❌ No user ID found in activity: \(activity)")
+                    return
+                }
+                
+                print("📢 Reporting user \(finalUserId) for \(reason)")
+                
+                // Use the custom GRead API for reporting
+                let body: [String: Any] = [
+                    "user_id": finalUserId,
+                    "reason": reason
+                ]
+                
+                struct ReportResponse: Codable {
+                    let success: Bool
+                    let message: String?
+                }
+                
+                let response: ReportResponse = try await APIManager.shared.customRequest(
+                    endpoint: "/user/report",
+                    method: "POST",
+                    body: body
+                )
+                
+                print("✅ Report response: \(response.message ?? "No message")")
+                
+                await MainActor.run {
+                    if response.success {
+                        // Show success in a temporary banner (using error state for now)
+                        errorMessage = "Report submitted successfully"
+                        // Auto-dismiss after 2 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            if errorMessage == "Report submitted successfully" {
+                                errorMessage = nil
+                            }
+                        }
+                    } else {
+                        errorMessage = response.message ?? "Failed to submit report"
+                    }
+                }
+            } catch {
+                print("❌ Report error: \(error)")
+                await MainActor.run {
+                    errorMessage = "Failed to report: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
 }
 
 struct ActivityRowView: View {
     let activity: Activity
+    let onUserTap: (Int) -> Void
+    let onReport: () -> Void
+    @State private var isLiked = false
+    @State private var showingComments = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -135,16 +282,29 @@ struct ActivityRowView: View {
                             .foregroundColor(.blue)
                             .font(.system(size: 18))
                     }
+                    .onTapGesture {
+                        if let userId = activity.userId {
+                            onUserTap(userId)
+                        }
+                    }
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    if let title = activity.displayName, !title.isEmpty {
-                        Text(title.stripHTML())
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    } else {
-                        Text("User \(activity.userId ?? 0)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                    Button(action: {
+                        if let userId = activity.userId {
+                            onUserTap(userId)
+                        }
+                    }) {
+                        if let title = activity.displayName, !title.isEmpty {
+                            Text(title.stripHTML())
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                        } else {
+                            Text("User \(activity.userId ?? 0)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                        }
                     }
                     
                     HStack(spacing: 4) {
@@ -167,6 +327,17 @@ struct ActivityRowView: View {
                 }
                 
                 Spacer()
+                
+                Menu {
+                    Button(role: .destructive) {
+                        onReport()
+                    } label: {
+                        Label("Report", systemImage: "flag")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(.gray)
+                }
             }
             
             // Content
@@ -180,18 +351,19 @@ struct ActivityRowView: View {
             // Action buttons
             HStack(spacing: 20) {
                 Button {
-                    // Favorite action
+                    toggleLike()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "heart")
+                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                            .foregroundColor(isLiked ? .red : .gray)
                         Text("Like")
+                            .foregroundColor(.gray)
                     }
                     .font(.caption)
-                    .foregroundColor(.gray)
                 }
                 
                 Button {
-                    // Comment action
+                    showingComments = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "bubble.right")
@@ -206,6 +378,126 @@ struct ActivityRowView: View {
             .padding(.top, 4)
         }
         .padding(.vertical, 8)
+        .sheet(isPresented: $showingComments) {
+            CommentView(activity: activity)
+        }
+    }
+    
+    private func toggleLike() {
+        Task {
+            do {
+                if isLiked {
+                    // Unlike (would need a favorite endpoint)
+                    await MainActor.run {
+                        isLiked = false
+                    }
+                } else {
+                    // Like the activity
+                    let body: [String: Any] = [:]
+                    let _: AnyCodable = try await APIManager.shared.request(
+                        endpoint: "/activity/\(activity.id)/favorite",
+                        method: "POST",
+                        body: body
+                    )
+                    await MainActor.run {
+                        isLiked = true
+                    }
+                }
+            } catch {
+                print("Failed to toggle like: \(error)")
+            }
+        }
+    }
+}
+
+struct CommentView: View {
+    @Environment(\.dismiss) var dismiss
+    let activity: Activity
+    @State private var commentText = ""
+    @State private var isPosting = false
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Original post
+                        if let content = activity.content {
+                            Text(content.stripHTML())
+                                .padding()
+                        }
+                        
+                        Divider()
+                        
+                        Text("Comments")
+                            .font(.headline)
+                            .padding(.horizontal)
+                    }
+                    .padding(.top)
+                }
+                
+                Divider()
+                
+                // Comment input
+                HStack(spacing: 12) {
+                    TextField("Add a comment...", text: $commentText, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(20)
+                        .lineLimit(1...5)
+                    
+                    Button {
+                        postComment()
+                    } label: {
+                        if isPosting {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(commentText.isEmpty ? .gray : .blue)
+                        }
+                    }
+                    .disabled(commentText.isEmpty || isPosting)
+                }
+                .padding()
+            }
+            .navigationTitle("Comments")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func postComment() {
+        isPosting = true
+        Task {
+            do {
+                let body: [String: Any] = [
+                    "content": commentText,
+                    "parent": activity.id
+                ]
+                
+                let _: Activity = try await APIManager.shared.request(
+                    endpoint: "/activity",
+                    method: "POST",
+                    body: body
+                )
+                
+                await MainActor.run {
+                    commentText = ""
+                    isPosting = false
+                }
+            } catch {
+                await MainActor.run {
+                    isPosting = false
+                }
+            }
+        }
     }
 }
 
@@ -276,7 +568,9 @@ struct NewActivityView: View {
                     "component": "activity"
                 ]
                 
-                let _: Activity = try await APIManager.shared.request(
+                // The API returns the activity object, but we'll just ignore the parsing
+                // and assume success if no error is thrown
+                let _: AnyCodable = try await APIManager.shared.request(
                     endpoint: "/activity",
                     method: "POST",
                     body: body
@@ -291,6 +585,90 @@ struct NewActivityView: View {
                     errorMessage = "Failed to post: \(error.localizedDescription)"
                     isPosting = false
                 }
+            }
+        }
+    }
+}
+
+struct UserProfileView: View {
+    let userId: Int
+    @Environment(\.dismiss) var dismiss
+    @State private var user: User?
+    @State private var isLoading = true
+    
+    var body: some View {
+        NavigationView {
+            Group {
+                if isLoading {
+                    ProgressView()
+                } else if let user = user {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Profile header
+                            VStack(spacing: 12) {
+                                AsyncImage(url: URL(string: user.avatarUrls?.full ?? "")) { image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                } placeholder: {
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                                
+                                Text(user.name)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                
+                                if let username = user.userLogin {
+                                    Text("@\(username)")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding(.top, 20)
+                            
+                            Divider()
+                            
+                            // Profile stats or info could go here
+                            
+                            Spacer()
+                        }
+                        .padding()
+                    }
+                } else {
+                    Text("User not found")
+                        .foregroundColor(.gray)
+                }
+            }
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await loadUser()
+            }
+        }
+    }
+    
+    private func loadUser() async {
+        do {
+            let loadedUser: User = try await APIManager.shared.request(
+                endpoint: "/members/\(userId)"
+            )
+            await MainActor.run {
+                user = loadedUser
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
             }
         }
     }

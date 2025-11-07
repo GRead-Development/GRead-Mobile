@@ -1,6 +1,6 @@
 import SwiftUI
 import Foundation
-internal import Combine
+import Combine
 
 // MARK: - Auth Manager with JWT
 class AuthManager: ObservableObject {
@@ -60,13 +60,9 @@ class AuthManager: ObservableObject {
             self.jwtToken = jwtResponse.token
             
             // Fetch current user from BuddyPress
-            let user: User = try await APIManager.shared.request(
-                endpoint: "/members/me",
-                authenticated: true
-            )
+            try await fetchCurrentUser()
             
             await MainActor.run {
-                self.currentUser = user
                 self.isAuthenticated = true
                 saveAuthState()
             }
@@ -84,6 +80,16 @@ class AuthManager: ObservableObject {
         isAuthenticated = false
         UserDefaults.standard.removeObject(forKey: "jwtToken")
         UserDefaults.standard.removeObject(forKey: "userId")
+    }
+    
+    func fetchCurrentUser() async throws {
+        let user: User = try await APIManager.shared.request(
+            endpoint: "/members/me",
+            authenticated: true
+        )
+        await MainActor.run {
+            self.currentUser = user
+        }
     }
     
     private func saveAuthState() {
@@ -112,16 +118,6 @@ class AuthManager: ObservableObject {
                     logout()
                 }
             }
-        }
-    }
-    
-    private func fetchCurrentUser() async throws {
-        let user: User = try await APIManager.shared.request(
-            endpoint: "/members/me",
-            authenticated: true
-        )
-        await MainActor.run {
-            self.currentUser = user
         }
     }
 }
