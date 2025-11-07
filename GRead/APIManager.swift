@@ -36,37 +36,81 @@ class APIManager {
             throw APIError.invalidResponse
         }
         
-        // Print response for debugging
+        // Enhanced response logging
+        print("=== API Response Debug ===")
+        print("URL: \(url)")
+        print("Status: \(httpResponse.statusCode)")
         if let responseString = String(data: data, encoding: .utf8) {
-            print("API Response [\(endpoint)]: \(responseString)")
+            print("Raw Response: \(responseString.prefix(500))") // First 500 chars
         }
+        print("========================")
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            print("API Error: Status \(httpResponse.statusCode)")
+            print("❌ API Error: Status \(httpResponse.statusCode)")
             throw APIError.httpError(httpResponse.statusCode)
         }
         
-        // Check if response is "false" (boolean) - common for empty results
-        if let responseString = String(data: data, encoding: .utf8),
-           responseString.trimmingCharacters(in: .whitespacesAndNewlines) == "false" {
-            // For array types, return empty array
-            if T.self is [Any].Type {
-                return [] as! T
+        // Check for empty or "false" response
+        if let responseString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if responseString == "false" || responseString == "[]" || responseString.isEmpty {
+                print("⚠️ Empty response detected")
+                // For array types, return empty array
+                if T.self is [Any].Type {
+                    return [] as! T
+                }
+                throw APIError.emptyResponse
             }
-            throw APIError.emptyResponse
         }
         
+        // Create decoder with flexible date strategy
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
+        
+        // Custom date decoding to handle multiple formats
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            // Try multiple date formats
+            let formatters: [DateFormatter] = [
+                self.createISO8601Formatter(),
+                self.createDateFormatter(format: "yyyy-MM-dd'T'HH:mm:ss"),
+                self.createDateFormatter(format: "yyyy-MM-dd HH:mm:ss"),
+                self.createDateFormatter(format: "yyyy-MM-dd")
+            ]
+            
+            for formatter in formatters {
+                if let date = formatter.date(from: dateString) {
+                    return date
+                }
+            }
+            
+            // If all formats fail, throw error
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Cannot decode date string: \(dateString)"
+            )
+        }
         
         do {
-            return try decoder.decode(T.self, from: data)
+            let decoded = try decoder.decode(T.self, from: data)
+            print("✅ Successfully decoded response")
+            return decoded
         } catch {
-            print("Decoding error for \(endpoint): \(error)")
+            print("❌ Decoding error for \(endpoint):")
+            print("   Error: \(error)")
+            
+            // Try to print the JSON structure for debugging
+            if let json = try? JSONSerialization.jsonObject(with: data),
+               let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+               let prettyString = String(data: prettyData, encoding: .utf8) {
+                print("   JSON structure:")
+                print(prettyString.prefix(1000))
+            }
             
             // If decoding fails and we're expecting an array, try returning empty
             if T.self is [Any].Type {
+                print("   Returning empty array as fallback")
                 return [] as! T
             }
             
@@ -89,7 +133,6 @@ class APIManager {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Add JWT token to Authorization header
         if authenticated, let token = AuthManager.shared.jwtToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -104,13 +147,15 @@ class APIManager {
             throw APIError.invalidResponse
         }
         
-        // Print response for debugging
+        print("=== Custom API Response ===")
+        print("URL: \(url)")
+        print("Status: \(httpResponse.statusCode)")
         if let responseString = String(data: data, encoding: .utf8) {
-            print("Custom API Response [\(endpoint)]: \(responseString)")
+            print("Response: \(responseString)")
         }
+        print("=========================")
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            print("Custom API Error: Status \(httpResponse.statusCode)")
             throw APIError.httpError(httpResponse.statusCode)
         }
         
@@ -118,6 +163,23 @@ class APIManager {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         
         return try decoder.decode(T.self, from: data)
+    }
+    
+    // Helper methods for date formatting
+    private func createISO8601Formatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
+    }
+    
+    private func createDateFormatter(format: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = format
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
     }
 }
 

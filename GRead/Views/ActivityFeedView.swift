@@ -51,7 +51,6 @@ struct ActivityFeedView: View {
                                 }
                             }
                             
-                            // Load more when reaching the last item
                             if activity.id == activities.last?.id && hasMorePages && !isLoading {
                                 ProgressView()
                                     .onAppear {
@@ -136,27 +135,37 @@ struct ActivityFeedView: View {
         errorMessage = nil
         
         do {
-            let response: ActivityResponse = try await APIManager.shared.request(
-                endpoint: "/activity?per_page=20&page=\(page)"
+            // Request with populate_extras to get user info
+            let response: [Activity] = try await APIManager.shared.request(
+                endpoint: "/activity?per_page=20&page=\(page)&display_comments=false"
             )
             
-            // Debug: Print first activity to see what data we're getting
-            if let first = response.activities.first {
-                print("🔍 Activity debug:")
-                print("  - ID: \(first.id)")
-                print("  - userId: \(first.userId ?? -1)")
-                print("  - displayName: \(first.displayName ?? "nil")")
-                print("  - userLogin: \(first.userLogin ?? "nil")")
-                print("  - content: \(first.content ?? "nil")")
+            print("📦 Loaded \(response.count) activities")
+            if let first = response.first {
+                print("🔍 First activity sample:")
+                print("   ID: \(first.id)")
+                print("   userId: \(first.userId ?? -1)")
+                print("   displayName: \(first.displayName ?? "nil")")
+                print("   userLogin: \(first.userLogin ?? "nil")")
+                print("   userFullname: \(first.userFullname ?? "nil")")
+                print("   bestUserName: \(first.bestUserName)")
             }
             
             await MainActor.run {
                 if page == 1 {
-                    activities = response.activities
+                    activities = response
                 } else {
-                    activities.append(contentsOf: response.activities)
+                    activities.append(contentsOf: response)
                 }
-                hasMorePages = response.hasMoreItems ?? false
+                hasMorePages = response.count >= 20
+                isLoading = false
+            }
+        } catch APIError.emptyResponse {
+            await MainActor.run {
+                if page == 1 {
+                    activities = []
+                }
+                hasMorePages = false
                 isLoading = false
             }
         } catch {
@@ -192,35 +201,27 @@ struct ActivityFeedView: View {
     }
     
     private func reportActivity(_ activity: Activity, reason: String) {
-        selectedActivity = nil // Dismiss the alert
+        selectedActivity = nil
         
         Task {
             do {
-                // Try to get user ID from various sources
                 var userId: Int?
                 
                 if let uid = activity.userId {
                     userId = uid
-                    print("📢 Found userId: \(uid)")
                 } else if let itemId = activity.itemId {
                     userId = itemId
-                    print("📢 Using itemId as userId: \(itemId)")
                 } else if let secondaryItemId = activity.secondaryItemId {
                     userId = secondaryItemId
-                    print("📢 Using secondaryItemId as userId: \(secondaryItemId)")
                 }
                 
                 guard let finalUserId = userId else {
                     await MainActor.run {
-                        errorMessage = "Cannot report: User ID not found. Activity ID: \(activity.id)"
+                        errorMessage = "Cannot report: User ID not found"
                     }
-                    print("❌ No user ID found in activity: \(activity)")
                     return
                 }
                 
-                print("📢 Reporting user \(finalUserId) for \(reason)")
-                
-                // Use the custom GRead API for reporting
                 let body: [String: Any] = [
                     "user_id": finalUserId,
                     "reason": reason
@@ -237,13 +238,9 @@ struct ActivityFeedView: View {
                     body: body
                 )
                 
-                print("✅ Report response: \(response.message ?? "No message")")
-                
                 await MainActor.run {
                     if response.success {
-                        // Show success in a temporary banner (using error state for now)
                         errorMessage = "Report submitted successfully"
-                        // Auto-dismiss after 2 seconds
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             if errorMessage == "Report submitted successfully" {
                                 errorMessage = nil
@@ -254,7 +251,6 @@ struct ActivityFeedView: View {
                     }
                 }
             } catch {
-                print("❌ Report error: \(error)")
                 await MainActor.run {
                     errorMessage = "Failed to report: \(error.localizedDescription)"
                 }
@@ -272,7 +268,6 @@ struct ActivityRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Header with user info
             HStack(spacing: 8) {
                 Circle()
                     .fill(Color.blue.opacity(0.2))
@@ -294,17 +289,10 @@ struct ActivityRowView: View {
                             onUserTap(userId)
                         }
                     }) {
-                        if let title = activity.displayName, !title.isEmpty {
-                            Text(title.stripHTML())
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.primary)
-                        } else {
-                            Text("User \(activity.userId ?? 0)")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.primary)
-                        }
+                        Text(activity.bestUserName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
                     }
                     
                     HStack(spacing: 4) {
@@ -340,7 +328,6 @@ struct ActivityRowView: View {
                 }
             }
             
-            // Content
             if let content = activity.content, !content.isEmpty {
                 Text(content.stripHTML())
                     .font(.body)
@@ -348,7 +335,6 @@ struct ActivityRowView: View {
                     .padding(.top, 4)
             }
             
-            // Action buttons
             HStack(spacing: 20) {
                 Button {
                     toggleLike()
@@ -387,12 +373,10 @@ struct ActivityRowView: View {
         Task {
             do {
                 if isLiked {
-                    // Unlike (would need a favorite endpoint)
                     await MainActor.run {
                         isLiked = false
                     }
                 } else {
-                    // Like the activity
                     let body: [String: Any] = [:]
                     let _: AnyCodable = try await APIManager.shared.request(
                         endpoint: "/activity/\(activity.id)/favorite",
@@ -421,7 +405,6 @@ struct CommentView: View {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        // Original post
                         if let content = activity.content {
                             Text(content.stripHTML())
                                 .padding()
@@ -438,7 +421,6 @@ struct CommentView: View {
                 
                 Divider()
                 
-                // Comment input
                 HStack(spacing: 12) {
                     TextField("Add a comment...", text: $commentText, axis: .vertical)
                         .textFieldStyle(.plain)
@@ -568,8 +550,6 @@ struct NewActivityView: View {
                     "component": "activity"
                 ]
                 
-                // The API returns the activity object, but we'll just ignore the parsing
-                // and assume success if no error is thrown
                 let _: AnyCodable = try await APIManager.shared.request(
                     endpoint: "/activity",
                     method: "POST",
@@ -604,7 +584,6 @@ struct UserProfileView: View {
                 } else if let user = user {
                     ScrollView {
                         VStack(spacing: 20) {
-                            // Profile header
                             VStack(spacing: 12) {
                                 AsyncImage(url: URL(string: user.avatarUrls?.full ?? "")) { image in
                                     image
@@ -630,8 +609,6 @@ struct UserProfileView: View {
                             .padding(.top, 20)
                             
                             Divider()
-                            
-                            // Profile stats or info could go here
                             
                             Spacer()
                         }

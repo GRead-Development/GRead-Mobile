@@ -37,9 +37,10 @@ struct Activity: Codable, Identifiable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
+        // Required field
         id = try container.decode(Int.self, forKey: .id)
         
-        // Try decoding userId as Int or String
+        // Try decoding userId with multiple strategies
         if let userIdInt = try? container.decode(Int.self, forKey: .userId) {
             userId = userIdInt
         } else if let userIdString = try? container.decode(String.self, forKey: .userId),
@@ -47,22 +48,57 @@ struct Activity: Codable, Identifiable {
             userId = userIdInt
         } else {
             userId = nil
+            print("⚠️ Warning: No userId found for activity \(id)")
         }
         
+        // Optional string fields
         component = try? container.decode(String.self, forKey: .component)
         type = try? container.decode(String.self, forKey: .type)
         action = try? container.decode(String.self, forKey: .action)
-        content = try? container.decode(String.self, forKey: .content)
+        
+        // Content might be wrapped in an object or be a plain string
+        if let contentObj = try? container.decode([String: String].self, forKey: .content) {
+            content = contentObj["rendered"] ?? contentObj["raw"]
+        } else {
+            content = try? container.decode(String.self, forKey: .content)
+        }
+        
         primaryLink = try? container.decode(String.self, forKey: .primaryLink)
+        
+        // Integer fields
         itemId = try? container.decode(Int.self, forKey: .itemId)
         secondaryItemId = try? container.decode(Int.self, forKey: .secondaryItemId)
-        dateRecorded = try? container.decode(String.self, forKey: .dateRecorded)
         hideSitewide = try? container.decode(Int.self, forKey: .hideSitewide)
         isSpam = try? container.decode(Int.self, forKey: .isSpam)
+        
+        // Date as string (don't try to parse as Date object)
+        dateRecorded = try? container.decode(String.self, forKey: .dateRecorded)
+        
+        // User info fields
         userEmail = try? container.decode(String.self, forKey: .userEmail)
         userNicename = try? container.decode(String.self, forKey: .userNicename)
         userLogin = try? container.decode(String.self, forKey: .userLogin)
         displayName = try? container.decode(String.self, forKey: .displayName)
         userFullname = try? container.decode(String.self, forKey: .userFullname)
+        
+        // Debug logging
+        if displayName == nil && userLogin == nil {
+            print("⚠️ Warning: Activity \(id) has no display name or user login")
+        }
+    }
+    
+    // Computed property for getting the best available name
+    var bestUserName: String {
+        if let name = displayName, !name.isEmpty {
+            return name
+        } else if let name = userFullname, !name.isEmpty {
+            return name
+        } else if let login = userLogin, !login.isEmpty {
+            return login
+        } else if let userId = userId {
+            return "User \(userId)"
+        } else {
+            return "Unknown User"
+        }
     }
 }
