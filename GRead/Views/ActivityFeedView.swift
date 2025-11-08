@@ -282,7 +282,6 @@ struct ActivityRowView: View {
     let activity: Activity
     let onUserTap: (Int) -> Void
     let onReport: () -> Void
-    @State private var isLiked = false
     @State private var showingComments = false
     
     var body: some View {
@@ -356,18 +355,6 @@ struct ActivityRowView: View {
             
             HStack(spacing: 20) {
                 Button {
-                    toggleLike()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .foregroundColor(isLiked ? .red : .gray)
-                        Text("Like")
-                            .foregroundColor(.gray)
-                    }
-                    .font(.caption)
-                }
-                
-                Button {
                     showingComments = true
                 } label: {
                     HStack(spacing: 4) {
@@ -377,7 +364,7 @@ struct ActivityRowView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
                 }
-                
+
                 Spacer()
             }
             .padding(.top, 4)
@@ -385,30 +372,6 @@ struct ActivityRowView: View {
         .padding(.vertical, 8)
         .sheet(isPresented: $showingComments) {
             CommentView(activity: activity)
-        }
-    }
-    
-    private func toggleLike() {
-        Task {
-            do {
-                if isLiked {
-                    await MainActor.run {
-                        isLiked = false
-                    }
-                } else {
-                    let body: [String: Any] = [:]
-                    let _: AnyCodable = try await APIManager.shared.request(
-                        endpoint: "/activity/\(activity.id)/favorite",
-                        method: "POST",
-                        body: body
-                    )
-                    await MainActor.run {
-                        isLiked = true
-                    }
-                }
-            } catch {
-                print("Failed to toggle like: \(error)")
-            }
         }
     }
 }
