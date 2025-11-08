@@ -555,9 +555,12 @@ struct NewActivityView: View {
 struct UserProfileView: View {
     let userId: Int
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var authManager: AuthManager
     @State private var user: User?
+    @State private var stats: UserStats?
     @State private var isLoading = true
-    
+    @State private var showModerationView = false
+
     var body: some View {
         NavigationView {
             Group {
@@ -578,20 +581,63 @@ struct UserProfileView: View {
                                 }
                                 .frame(width: 100, height: 100)
                                 .clipShape(Circle())
-                                
+
                                 Text(user.name)
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                
+
                                 if let username = user.userLogin {
                                     Text("@\(username)")
                                         .foregroundColor(.gray)
                                 }
                             }
                             .padding(.top, 20)
-                            
+
+                            // Stats Section
+                            if let stats = stats {
+                                Divider()
+
+                                VStack(spacing: 12) {
+                                    Text("Statistics")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    HStack(spacing: 12) {
+                                        StatCard(
+                                            label: "Books Completed",
+                                            value: "\(stats.booksCompleted)",
+                                            icon: "checkmark.circle.fill",
+                                            color: .green
+                                        )
+                                        StatCard(
+                                            label: "Pages Read",
+                                            value: "\(stats.pagesRead)",
+                                            icon: "book.fill",
+                                            color: .blue
+                                        )
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                            }
+
                             Divider()
-                            
+
+                            // Moderation Actions
+                            if authManager.currentUser?.id != userId {
+                                Button(action: { showModerationView = true }) {
+                                    HStack {
+                                        Image(systemName: "exclamationmark.shield.fill")
+                                        Text("Moderation Options")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red.opacity(0.1))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(8)
+                                }
+                                .padding(.vertical, 8)
+                            }
+
                             Spacer()
                         }
                         .padding()
@@ -610,12 +656,18 @@ struct UserProfileView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showModerationView) {
+                if let userName = user?.name {
+                    ModerationView(userId: userId, userName: userName)
+                }
+            }
             .task {
                 await loadUser()
+                await loadStats()
             }
         }
     }
-    
+
     private func loadUser() async {
         do {
             let loadedUser: User = try await APIManager.shared.request(
@@ -629,6 +681,17 @@ struct UserProfileView: View {
             await MainActor.run {
                 isLoading = false
             }
+        }
+    }
+
+    private func loadStats() async {
+        do {
+            let userStats = try await APIManager.shared.getUserStats(userId: userId)
+            await MainActor.run {
+                stats = userStats
+            }
+        } catch {
+            print("Failed to load user stats: \(error)")
         }
     }
 }

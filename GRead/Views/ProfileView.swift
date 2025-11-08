@@ -10,7 +10,10 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
-    
+    @State private var stats: UserStats?
+    @State private var showStatsView = false
+    @State private var isLoadingStats = false
+
     var body: some View {
         NavigationView {
             List {
@@ -25,12 +28,12 @@ struct ProfileView: View {
                             }
                             .frame(width: 80, height: 80)
                             .clipShape(Circle())
-                            
+
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(user.name)
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                
+
                                 if let username = user.userLogin {
                                     Text("@\(username)")
                                         .foregroundColor(.gray)
@@ -39,7 +42,25 @@ struct ProfileView: View {
                         }
                         .padding(.vertical)
                     }
-                    
+
+                    Section(header: Text("Your Stats")) {
+                        if let stats = stats {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    StatRow(label: "Points", value: "\(stats.points)", icon: "star.fill", color: .yellow)
+                                    StatRow(label: "Books Completed", value: "\(stats.booksCompleted)", icon: "checkmark.circle.fill", color: .green)
+                                    StatRow(label: "Pages Read", value: "\(stats.pagesRead)", icon: "book.fill", color: .blue)
+                                    StatRow(label: "Books Added", value: "\(stats.booksAdded)", icon: "plus.circle.fill", color: .purple)
+                                }
+                            }
+                        } else if isLoadingStats {
+                            ProgressView()
+                        } else {
+                            Text("No stats available")
+                                .foregroundColor(.gray)
+                        }
+                    }
+
                     Section(header: Text("Settings")) {
                         NavigationLink("Edit Profile") {
                             Text("Edit Profile")
@@ -55,7 +76,7 @@ struct ProfileView: View {
                         Link("Terms of Service", destination: URL(string: "https://gread.fun/tos")!)
                     }
                 }
-                
+
                 Section {
                     Button(action: { authManager.logout() }) {
                         Text("Logout")
@@ -64,6 +85,47 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .task {
+                await loadUserStats()
+            }
         }
+    }
+
+    private func loadUserStats() {
+        guard let userId = authManager.currentUser?.id else { return }
+
+        Task {
+            isLoadingStats = true
+            do {
+                stats = try await APIManager.shared.getUserStats(userId: userId)
+            } catch {
+                print("Failed to load user stats: \(error)")
+            }
+            isLoadingStats = false
+        }
+    }
+}
+
+struct StatRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 20)
+
+            Text(label)
+                .foregroundColor(.gray)
+
+            Spacer()
+
+            Text(value)
+                .fontWeight(.semibold)
+        }
+        .font(.caption)
     }
 }

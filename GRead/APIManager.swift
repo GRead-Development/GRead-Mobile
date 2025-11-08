@@ -214,6 +214,94 @@ class APIManager {
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter
     }
+
+    // MARK: - User Stats Endpoints
+
+    /// Fetch user statistics for a given user ID
+    func getUserStats(userId: Int) async throws -> UserStats {
+        return try await customRequest(
+            endpoint: "/user/\(userId)/stats",
+            authenticated: true
+        )
+    }
+
+    // MARK: - Moderation Endpoints
+
+    /// Block a user
+    func blockUser(userId: Int) async throws -> ModerationResponse {
+        return try await customRequest(
+            endpoint: "/user/block",
+            method: "POST",
+            body: ["user_id": userId],
+            authenticated: true
+        )
+    }
+
+    /// Unblock a user
+    func unblockUser(userId: Int) async throws -> ModerationResponse {
+        return try await customRequest(
+            endpoint: "/user/unblock",
+            method: "POST",
+            body: ["user_id": userId],
+            authenticated: true
+        )
+    }
+
+    /// Mute a user
+    func muteUser(userId: Int) async throws -> ModerationResponse {
+        return try await customRequest(
+            endpoint: "/user/mute",
+            method: "POST",
+            body: ["user_id": userId],
+            authenticated: true
+        )
+    }
+
+    /// Unmute a user
+    func unmuteUser(userId: Int) async throws -> ModerationResponse {
+        return try await customRequest(
+            endpoint: "/user/unmute",
+            method: "POST",
+            body: ["user_id": userId],
+            authenticated: true
+        )
+    }
+
+    /// Report a user
+    func reportUser(userId: Int, reason: String) async throws -> ModerationResponse {
+        return try await customRequest(
+            endpoint: "/user/report",
+            method: "POST",
+            body: ["user_id": userId, "reason": reason],
+            authenticated: true
+        )
+    }
+
+    /// Get list of blocked users
+    func getBlockedList() async throws -> BlockedListResponse {
+        return try await customRequest(
+            endpoint: "/user/blocked_list",
+            authenticated: true
+        )
+    }
+
+    /// Get list of muted users
+    func getMutedList() async throws -> MutedListResponse {
+        return try await customRequest(
+            endpoint: "/user/muted_list",
+            authenticated: true
+        )
+    }
+
+    // MARK: - Activity Feed Endpoints
+
+    /// Fetch activity feed with pagination
+    func getActivityFeed(page: Int = 1, perPage: Int = 20) async throws -> ActivityFeedResponse {
+        return try await customRequest(
+            endpoint: "/activity?per_page=\(perPage)&page=\(page)",
+            authenticated: false
+        )
+    }
 }
 
 enum APIError: LocalizedError {
