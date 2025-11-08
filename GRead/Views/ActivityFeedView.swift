@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ActivityFeedView: View {
+    @EnvironmentObject var authManager: AuthManager
     @State private var activities: [Activity] = []
     @State private var isLoading = false
     @State private var showingNewPost = false
@@ -10,6 +11,7 @@ struct ActivityFeedView: View {
     @State private var selectedActivity: Activity?
     @State private var showingUserProfile = false
     @State private var selectedUserId: Int?
+    @State private var showingLoginPrompt = false
     
     var body: some View {
         NavigationView {
@@ -73,12 +75,24 @@ struct ActivityFeedView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        showingNewPost = true
+                        if authManager.isGuestMode {
+                            showingLoginPrompt = true
+                        } else {
+                            showingNewPost = true
+                        }
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
                     }
                 }
+            }
+            .alert("Sign In Required", isPresented: $showingLoginPrompt) {
+                Button("Sign In") {
+                    // Navigate to login
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("You need to sign in to create posts. Please sign in or create an account.")
             }
             .sheet(isPresented: $showingNewPost) {
                 NewActivityView(onPost: {
@@ -108,7 +122,9 @@ struct ActivityFeedView: View {
                     Button("Harassment", role: .destructive) {
                         reportActivity(activity, reason: "harassment")
                     }
-                    Button("Cancel", role: .cancel) {}
+                    Button("Cancel", role: .cancel) {
+                        selectedActivity = nil
+                    }
                 }
             } message: {
                 Text("Why are you reporting this post?")
@@ -136,8 +152,10 @@ struct ActivityFeedView: View {
 
         do {
             // Request with populate_extras to get user info
+            // Allow unauthenticated access to read activities
             let activityResponse: ActivityResponse = try await APIManager.shared.request(
-                endpoint: "/activity?per_page=20&page=\(page)&display_comments=false"
+                endpoint: "/activity?per_page=20&page=\(page)&display_comments=false",
+                authenticated: false
             )
             let response = activityResponse.activities
 

@@ -50,11 +50,13 @@ struct GroupsView: View {
     private func loadGroups() async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             // The API returns a dictionary with "groups" key
+            // Allow unauthenticated access to read groups
             let response: GroupsResponse = try await APIManager.shared.request(
-                endpoint: "/groups?per_page=20"
+                endpoint: "/groups?per_page=20",
+                authenticated: false
             )
             await MainActor.run {
                 groups = response.groups

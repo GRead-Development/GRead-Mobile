@@ -9,32 +9,68 @@ import SwiftUI
 
 
 struct MainTabView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @State private var showingProfile = false
+
     var body: some View {
-        TabView {
-            ActivityFeedView()
-                .tabItem {
-                    Label("Activity", systemImage: "flame.fill")
+        ZStack {
+            TabView {
+                ActivityFeedView()
+                    .environmentObject(authManager)
+                    .tabItem {
+                        Label("Activity", systemImage: "flame.fill")
+                    }
+
+                GroupsView()
+                    .tabItem {
+                        Label("Groups", systemImage: "person.3.fill")
+                    }
+
+                MessagesView()
+                    .tabItem {
+                        Label("Messages", systemImage: "message.fill")
+                    }
+
+                NotificationsView()
+                    .tabItem {
+                        Label("Notifications", systemImage: "bell.fill")
+                    }
+
+                if authManager.isAuthenticated {
+                    ProfileView()
+                        .tabItem {
+                            Label("Profile", systemImage: "person.fill")
+                        }
+                } else {
+                    GuestProfileView()
+                        .environmentObject(authManager)
+                        .tabItem {
+                            Label("Profile", systemImage: "person.fill")
+                        }
                 }
-            
-            GroupsView()
-                .tabItem {
-                    Label("Groups", systemImage: "person.3.fill")
+            }
+
+            // Login prompt overlay for guest users trying to post
+            if authManager.isGuestMode {
+                VStack {
+                    HStack {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(.blue)
+                        Text("Sign in to post and interact")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(10)
+                    .padding()
+
+                    Spacer()
                 }
-            
-            MessagesView()
-                .tabItem {
-                    Label("Messages", systemImage: "message.fill")
-                }
-            
-            NotificationsView()
-                .tabItem {
-                    Label("Notifications", systemImage: "bell.fill")
-                }
-            
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
+                .frame(maxHeight: .infinity, alignment: .top)
+                .allowsHitTesting(false)
+            }
         }
     }
 }

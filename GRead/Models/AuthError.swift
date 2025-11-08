@@ -14,7 +14,8 @@ enum AuthError: LocalizedError {
     case unauthorized
     case httpError(Int)
     case networkError
-    
+    case registrationFailed(String)
+
     var errorDescription: String? {
         switch self {
         case .invalidCredentials:
@@ -27,6 +28,12 @@ enum AuthError: LocalizedError {
             return "Server error: \(code)"
         case .networkError:
             return "Network error. Please check your connection."
+        case .registrationFailed(let message):
+            return message
         }
     }
+}
+
+struct RegistrationErrorResponse: Decodable {
+    let message: String?
 }

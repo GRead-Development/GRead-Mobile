@@ -5,12 +5,13 @@ import Combine
 // MARK: - Auth Manager with JWT
 class AuthManager: ObservableObject {
     static let shared = AuthManager()
-    
+
     @Published var isAuthenticated = false
     @Published var currentUser: User?
+    @Published var isGuestMode = false
     var jwtToken: String?
-    
-    private init() {
+
+    init() {
         loadAuthState()
     }
     
@@ -74,10 +75,68 @@ class AuthManager: ObservableObject {
         }
     }
     
+    func register(username: String, email: String, password: String) async throws {
+        // BuddyPress registration endpoint
+        let url = URL(string: "https://gread.fun/wp-json/buddypress/v1/members")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = [
+            "user_login": username,
+            "email": email,
+            "password": password
+        ]
+
+        request.httpBody = try JSONEncoder().encode(body)
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AuthError.invalidResponse
+            }
+
+            // Print response for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Registration Response: \(responseString)")
+            }
+
+            if httpResponse.statusCode == 400 || httpResponse.statusCode == 409 {
+                // Parse error message from response
+                if let errorResponse = try? JSONDecoder().decode(RegistrationErrorResponse.self, from: data) {
+                    if let message = errorResponse.message {
+                        throw AuthError.registrationFailed(message)
+                    }
+                }
+                throw AuthError.registrationFailed("Registration failed. Please check your information.")
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                print("Registration failed with status: \(httpResponse.statusCode)")
+                throw AuthError.registrationFailed("Registration failed. Please try again.")
+            }
+
+            // After successful registration, auto-login
+            try await login(username: username, password: password)
+        } catch let error as AuthError {
+            throw error
+        } catch {
+            print("Registration error: \(error)")
+            throw AuthError.networkError
+        }
+    }
+
+    func enterGuestMode() {
+        isGuestMode = true
+        isAuthenticated = false
+    }
+
     func logout() {
         jwtToken = nil
         currentUser = nil
         isAuthenticated = false
+        isGuestMode = false
         UserDefaults.standard.removeObject(forKey: "jwtToken")
         UserDefaults.standard.removeObject(forKey: "userId")
     }
