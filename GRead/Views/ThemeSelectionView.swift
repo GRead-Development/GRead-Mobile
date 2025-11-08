@@ -5,52 +5,50 @@ struct ThemeSelectionView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Unlocked themes
+        VStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Unlocked themes
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Unlocked Themes")
+                            .font(.headline)
+                            .padding(.horizontal)
+
+                        VStack(spacing: 12) {
+                            ForEach(themeManager.allThemes) { theme in
+                                if themeManager.isThemeUnlocked(theme.id) {
+                                    ThemeSelectionRow(theme: theme)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    // Locked themes section
+                    let lockedThemes = themeManager.allThemes.filter {
+                        !themeManager.isThemeUnlocked($0.id)
+                    }
+
+                    if !lockedThemes.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Unlocked Themes")
+                            Text("Locked Themes")
                                 .font(.headline)
                                 .padding(.horizontal)
 
                             VStack(spacing: 12) {
-                                ForEach(themeManager.allThemes) { theme in
-                                    if themeManager.isThemeUnlocked(theme.id) {
-                                        ThemeSelectionRow(theme: theme)
-                                    }
+                                ForEach(lockedThemes) { theme in
+                                    LockedThemeSelectionRow(theme: theme)
                                 }
                             }
                             .padding(.horizontal)
                         }
-
-                        // Locked themes section
-                        let lockedThemes = themeManager.allThemes.filter {
-                            !themeManager.isThemeUnlocked($0.id)
-                        }
-
-                        if !lockedThemes.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Locked Themes")
-                                    .font(.headline)
-                                    .padding(.horizontal)
-
-                                VStack(spacing: 12) {
-                                    ForEach(lockedThemes) { theme in
-                                        LockedThemeSelectionRow(theme: theme)
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
                     }
-                    .padding(.vertical)
                 }
+                .padding(.vertical)
             }
-            .navigationTitle("Select Theme")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("Select Theme")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

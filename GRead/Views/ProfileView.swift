@@ -63,19 +63,6 @@ struct ProfileView: View {
                     }
 
                     Section(header: Text("Customization")) {
-                        NavigationLink(destination: UnlocksView()) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "lock.open.fill")
-                                    .foregroundColor(.orange)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Themes & Cosmetics")
-                                    Text("\(themeManager.userCosmetics.unlockedCosmetics.count) unlocked")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-
                         NavigationLink(destination: ThemeSelectionView()) {
                             HStack(spacing: 12) {
                                 Image(systemName: "paintpalette.fill")
@@ -91,11 +78,11 @@ struct ProfileView: View {
                     }
 
                     Section(header: Text("Settings")) {
-                        NavigationLink("Edit Profile") {
+                        NavigationLink(destination: Text("Edit Profile").navigationTitle("Edit Profile")) {
                             Text("Edit Profile")
                         }
 
-                        NavigationLink("Privacy") {
+                        NavigationLink(destination: Text("Privacy Settings").navigationTitle("Privacy")) {
                             Text("Privacy Settings")
                         }
                     }
