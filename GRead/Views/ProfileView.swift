@@ -13,6 +13,7 @@ struct ProfileView: View {
     @State private var stats: UserStats?
     @State private var showStatsView = false
     @State private var isLoadingStats = false
+    @ObservedObject var themeManager = ThemeManager.shared
 
     var body: some View {
         NavigationView {
@@ -61,6 +62,34 @@ struct ProfileView: View {
                         }
                     }
 
+                    Section(header: Text("Customization")) {
+                        NavigationLink(destination: UnlocksView()) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "lock.open.fill")
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Themes & Cosmetics")
+                                    Text("\(themeManager.userCosmetics.unlockedCosmetics.count) unlocked")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
+
+                        NavigationLink(destination: ThemeSelectionView()) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "paintpalette.fill")
+                                    .foregroundColor(.blue)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Active Theme")
+                                    Text(themeManager.currentTheme.name)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
+                    }
+
                     Section(header: Text("Settings")) {
                         NavigationLink("Edit Profile") {
                             Text("Edit Profile")
@@ -86,7 +115,7 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
             .task {
-                await loadUserStats()
+                loadUserStats()
             }
         }
     }

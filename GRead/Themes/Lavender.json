@@ -1,0 +1,13 @@
+{
+  "id": "purple",
+  "name": "Lavender",
+  "description": "Elegant purple tones",
+  "primary_color": "#7209B7",
+  "secondary_color": "#B5179E",
+  "accent_color": "#F72585",
+  "background_color": "#F8F7FF",
+  "unlock_requirement": {
+    "stat": "booksAdded",
+    "value": 10
+  }
+}

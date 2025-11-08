@@ -302,6 +302,60 @@ class APIManager {
             authenticated: false
         )
     }
+
+    // MARK: - Cosmetics Endpoints
+
+    /// Fetch all available cosmetics for the user
+    func getUserCosmetics() async throws -> UserCosmetics {
+        return try await customRequest(
+            endpoint: "/user/cosmetics",
+            authenticated: true
+        )
+    }
+
+    /// Fetch all available cosmetics to unlock
+    func getAvailableCosmetics() async throws -> [CosmeticUnlock] {
+        return try await customRequest(
+            endpoint: "/cosmetics",
+            authenticated: true
+        )
+    }
+
+    /// Set active theme for the user
+    func setActiveTheme(themeId: String) async throws -> UserCosmetics {
+        return try await customRequest(
+            endpoint: "/user/cosmetics/theme",
+            method: "POST",
+            body: ["theme_id": themeId],
+            authenticated: true
+        )
+    }
+
+    /// Set active icon for the user
+    func setActiveIcon(iconId: String) async throws -> UserCosmetics {
+        return try await customRequest(
+            endpoint: "/user/cosmetics/icon",
+            method: "POST",
+            body: ["icon_id": iconId],
+            authenticated: true
+        )
+    }
+
+    /// Check and unlock cosmetics based on current stats
+    func checkAndUnlockCosmetics(stats: UserStats) async throws -> [CosmeticUnlock] {
+        return try await customRequest(
+            endpoint: "/user/check-unlocks",
+            method: "POST",
+            body: [
+                "points": stats.points,
+                "books_completed": stats.booksCompleted,
+                "pages_read": stats.pagesRead,
+                "books_added": stats.booksAdded,
+                "approved_reports": stats.approvedReports
+            ],
+            authenticated: true
+        )
+    }
 }
 
 enum APIError: LocalizedError {

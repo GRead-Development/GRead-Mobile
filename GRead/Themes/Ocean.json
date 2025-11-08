@@ -1,0 +1,13 @@
+{
+  "id": "ocean",
+  "name": "Ocean",
+  "description": "Calm ocean-inspired colors",
+  "primary_color": "#0077BE",
+  "secondary_color": "#00A4EF",
+  "accent_color": "#7DD3FC",
+  "background_color": "#F0F9FF",
+  "unlock_requirement": {
+    "stat": "booksCompleted",
+    "value": 5
+  }
+}

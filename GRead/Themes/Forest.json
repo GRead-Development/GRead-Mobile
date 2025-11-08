@@ -1,0 +1,13 @@
+{
+  "id": "forest",
+  "name": "Forest",
+  "description": "Natural forest colors",
+  "primary_color": "#2D6A4F",
+  "secondary_color": "#40916C",
+  "accent_color": "#52B788",
+  "background_color": "#F1FAEE",
+  "unlock_requirement": {
+    "stat": "points",
+    "value": 100
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "sunset",
+  "name": "Sunset",
+  "description": "Warm sunset colors",
+  "primary_color": "#FF6B35",
+  "secondary_color": "#F7931E",
+  "accent_color": "#FDB833",
+  "background_color": "#FFF8F3",
+  "unlock_requirement": {
+    "stat": "pagesRead",
+    "value": 500
+  }
+}

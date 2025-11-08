@@ -145,7 +145,7 @@ struct ModerationView: View {
                 )
             }
             .task {
-                await loadModerationLists()
+                loadModerationLists()
             }
         }
     }

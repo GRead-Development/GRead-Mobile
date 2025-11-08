@@ -406,98 +406,102 @@ struct AddBookSheet: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 16) {
-                SearchBar(text: $searchQuery)
-                    .padding()
-
-                if isSearching {
-                    ProgressView()
-                        .frame(maxHeight: .infinity, alignment: .center)
-                } else if !searchResults.isEmpty {
-                    List(searchResults) { book in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(book.title)
+            if #available(iOS 17.0, *) {
+                VStack(spacing: 16) {
+                    SearchBar(text: $searchQuery)
+                        .padding()
+                    
+                    if isSearching {
+                        ProgressView()
+                            .frame(maxHeight: .infinity, alignment: .center)
+                    } else if !searchResults.isEmpty {
+                        List(searchResults) { book in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(book.title)
+                                    .font(.headline)
+                                
+                                if let author = book.author {
+                                    Text(author)
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                if let description = book.description {
+                                    Text(description)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(2)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedBook = book
+                                showConfirmation = true
+                            }
+                        }
+                    } else if !searchQuery.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "books.vertical.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.gray)
+                            
+                            Text("No books found")
                                 .font(.headline)
-
-                            if let author = book.author {
-                                Text(author)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-
-                            if let description = book.description {
-                                Text(description)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    .lineLimit(2)
-                            }
+                                .foregroundColor(.gray)
+                            
+                            Text("Try searching with different keywords")
+                                .font(.caption)
+                                .foregroundColor(.gray)
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedBook = book
-                            showConfirmation = true
+                        .frame(maxHeight: .infinity, alignment: .center)
+                    } else {
+                        VStack(spacing: 16) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 50))
+                                .foregroundColor(.gray)
+                            
+                            Text("Search for books")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            
+                            Text("Enter a book title or author name")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        .frame(maxHeight: .infinity, alignment: .center)
+                    }
+                }
+                .navigationTitle("Add Book")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            isPresented = false
                         }
                     }
-                } else if !searchQuery.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "books.vertical.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
-
-                        Text("No books found")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-
-                        Text("Try searching with different keywords")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxHeight: .infinity, alignment: .center)
-                } else {
-                    VStack(spacing: 16) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
-
-                        Text("Search for books")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-
-                        Text("Enter a book title or author name")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxHeight: .infinity, alignment: .center)
                 }
-            }
-            .navigationTitle("Add Book")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        isPresented = false
+                .onChange(of: searchQuery) {
+                    if !searchQuery.isEmpty {
+                        performSearch()
+                    } else {
+                        searchResults = []
                     }
                 }
-            }
-            .onChange(of: searchQuery) { _ in
-                if !searchQuery.isEmpty {
-                    performSearch()
-                } else {
-                    searchResults = []
-                }
-            }
-            .alert("Add Book", isPresented: $showConfirmation, actions: {
-                Button("Cancel", role: .cancel) { }
-                Button("Add") {
+                .alert("Add Book", isPresented: $showConfirmation, actions: {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Add") {
+                        if let book = selectedBook {
+                            addBook(book)
+                        }
+                    }
+                }, message: {
                     if let book = selectedBook {
-                        addBook(book)
+                        Text("Add '\(book.title)' to your library?")
                     }
-                }
-            }, message: {
-                if let book = selectedBook {
-                    Text("Add '\(book.title)' to your library?")
-                }
-            })
+                })
+            } else {
+                // Fallback on earlier versions
+            }
         }
     }
 
