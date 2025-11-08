@@ -126,14 +126,17 @@ struct LibraryView: View {
 
     private func loadLibraryAsync() async {
         do {
+            print("🔍 Attempting to load library...")
             libraryItems = try await APIManager.shared.customRequest(
                 endpoint: "/library",
                 method: "GET",
                 authenticated: true
             )
+            print("✅ Successfully loaded \(libraryItems.count) items")
             isLoading = false
         } catch {
-            print("Error loading library: \(error)")
+            print("❌ Error loading library: \(error)")
+            print("   Error type: \(type(of: error))")
             isLoading = false
         }
     }
@@ -141,8 +144,9 @@ struct LibraryView: View {
     private func deleteBook(_ item: LibraryItem) {
         Task {
             do {
+                guard let bookId = item.book?.id else { return }
                 let _: EmptyResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/library/remove?book_id=\(item.bookId)",
+                    endpoint: "/library/remove?book_id=\(bookId)",
                     method: "DELETE",
                     authenticated: true
                 )
@@ -156,9 +160,10 @@ struct LibraryView: View {
     private func updateProgress(item: LibraryItem, currentPage: Int) {
         Task {
             do {
+                guard let bookId = item.book?.id else { return }
                 let body = ["current_page": currentPage]
                 let _: EmptyResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/library/progress?book_id=\(item.bookId)&current_page=\(currentPage)",
+                    endpoint: "/library/progress?book_id=\(bookId)&current_page=\(currentPage)",
                     method: "POST",
                     body: body,
                     authenticated: true

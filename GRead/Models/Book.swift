@@ -11,9 +11,10 @@ struct Book: Codable, Identifiable {
     let publishedDate: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, author, description
+        case id, title, author
+        case description = "content"
         case coverUrl = "cover_url"
-        case totalPages = "total_pages"
+        case totalPages = "page_count"
         case isbn
         case publishedDate = "published_date"
     }
@@ -21,7 +22,6 @@ struct Book: Codable, Identifiable {
 
 struct LibraryItem: Codable, Identifiable {
     let id: Int
-    let bookId: Int
     let book: Book?
     var currentPage: Int
     let status: String? // e.g., "reading", "completed", "paused"
@@ -30,7 +30,6 @@ struct LibraryItem: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case bookId = "book_id"
         case book
         case currentPage = "current_page"
         case status

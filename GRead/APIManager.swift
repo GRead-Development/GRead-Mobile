@@ -170,10 +170,32 @@ class APIManager {
             }
         }
 
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        // Print raw JSON for debugging
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📦 Raw API Response:")
+            print(responseString.prefix(2000))
+        }
 
-        return try decoder.decode(T.self, from: data)
+        let decoder = JSONDecoder()
+        // Don't use snake_case conversion for custom endpoints
+        // They already use snake_case keys
+
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            print("❌ Decoding error for \(endpoint):")
+            print("   Error: \(error)")
+
+            // Try to print the JSON structure for debugging
+            if let json = try? JSONSerialization.jsonObject(with: data),
+               let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+               let prettyString = String(data: prettyData, encoding: .utf8) {
+                print("   JSON structure:")
+                print(prettyString)
+            }
+
+            throw APIError.decodingError(error)
+        }
     }
     
     // Helper methods for date formatting
