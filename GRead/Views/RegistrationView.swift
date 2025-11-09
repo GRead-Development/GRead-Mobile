@@ -8,6 +8,7 @@ struct RegistrationView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var agreedToTerms = false
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showPassword = false
@@ -160,6 +161,39 @@ struct RegistrationView: View {
                     .padding(.horizontal, 24)
                 }
 
+                // Terms of Service Agreement
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
+                            .foregroundColor(agreedToTerms ? .blue : .gray)
+                            .font(.title3)
+                            .onTapGesture {
+                                agreedToTerms.toggle()
+                            }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 0) {
+                                Text("I agree to the ")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+
+                                Link("Terms of Service", destination: URL(string: "https://gread.fun/tos")!)
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.05))
+                    .cornerRadius(10)
+                    .onTapGesture {
+                        agreedToTerms.toggle()
+                    }
+                }
+                .padding(.horizontal, 24)
+
                 // Sign Up Button
                 Button(action: register) {
                     HStack {
@@ -173,11 +207,11 @@ struct RegistrationView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(isFormValid && !isLoading ? Color.blue : Color.gray.opacity(0.3))
+                    .background(isFormValid && agreedToTerms && !isLoading ? Color.blue : Color.gray.opacity(0.3))
                     .foregroundColor(.white)
                     .cornerRadius(10)
                 }
-                .disabled(!isFormValid || isLoading)
+                .disabled(!isFormValid || !agreedToTerms || isLoading)
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
 

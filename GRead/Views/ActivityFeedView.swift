@@ -169,6 +169,7 @@ struct ActivityFeedView: View {
                         activeSheet = .moderation(userId: userId, userName: userName)
                     }
                 )
+                .presentationDetents([.medium, .large])
             case .moderation(let userId, let userName):
                 ModerationView(userId: userId, userName: userName)
             case .comments(let activity):
@@ -521,19 +522,8 @@ struct ActivityRowView: View {
                         }
                     }
                 }
-                
+
                 Spacer()
-                
-                Menu {
-                    Button(role: .destructive) {
-                        onReport()
-                    } label: {
-                        Label("Report", systemImage: "flag")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(.gray)
-                }
             }
             
             if let content = activity.content, !content.isEmpty {
