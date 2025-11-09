@@ -82,6 +82,14 @@ struct ProfileView: View {
                             Text("Edit Profile")
                         }
 
+                        NavigationLink(destination: BlockedUsersView()) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "hand.raised.fill")
+                                    .foregroundColor(.red)
+                                Text("Blocked Users")
+                            }
+                        }
+
                         NavigationLink(destination: Text("Privacy Settings").navigationTitle("Privacy")) {
                             Text("Privacy Settings")
                         }
