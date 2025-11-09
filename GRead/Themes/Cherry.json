@@ -1,0 +1,13 @@
+{
+  "id": "cherry",
+  "name": "Cherry",
+  "description": "Warm cherry and rose tones",
+  "primary_color": "#E63946",
+  "secondary_color": "#F77F88",
+  "accent_color": "#D62828",
+  "background_color": "#FFF5F7",
+  "unlock_requirement": {
+    "stat": "books_added",
+    "value": 25
+  }
+}

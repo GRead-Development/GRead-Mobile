@@ -1,0 +1,13 @@
+{
+  "id": "coral",
+  "name": "Coral",
+  "description": "Vibrant coral and peach",
+  "primary_color": "#FF6B6B",
+  "secondary_color": "#FF8C42",
+  "accent_color": "#FFA07A",
+  "background_color": "#FFF8F5",
+  "unlock_requirement": {
+    "stat": "books_completed",
+    "value": 10
+  }
+}

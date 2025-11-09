@@ -4,22 +4,32 @@ import SwiftUI
 @main
 struct GReadApp: App {
     @StateObject private var authManager = AuthManager.shared
+    @ObservedObject var themeManager = ThemeManager.shared
     @State private var showSplash = true
 
     var body: some Scene {
         WindowGroup {
             ZStack {
                 // Main app content
-                if authManager.isAuthenticated {
-                    MainTabView()
-                        .environmentObject(authManager)
-                } else if authManager.isGuestMode {
-                    MainTabView()
-                        .environmentObject(authManager)
-                } else {
-                    LandingView()
-                        .environmentObject(authManager)
+                Group {
+                    if authManager.isAuthenticated {
+                        MainTabView()
+                            .environmentObject(authManager)
+                    } else if authManager.isGuestMode {
+                        MainTabView()
+                            .environmentObject(authManager)
+                    } else {
+                        LandingView()
+                            .environmentObject(authManager)
+                    }
                 }
+                .environmentObject(themeManager)
+                .environment(\.themeColors, ThemeColors(
+                    primary: themeManager.currentTheme.primary,
+                    secondary: themeManager.currentTheme.secondary,
+                    accent: themeManager.currentTheme.accent,
+                    background: themeManager.currentTheme.background
+                ))
 
                 // Splash screen overlay
                 if showSplash {

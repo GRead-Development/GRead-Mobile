@@ -40,20 +40,30 @@ class AuthManager: ObservableObject {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("JWT Response: \(responseString)")
             }
-            
+
+            // First, check if response is an error response (has a code field)
+            if let errorResponse = try? JSONDecoder().decode(JWTErrorResponse.self, from: data),
+               errorResponse.code != nil {
+                print("JWT Error detected: \(errorResponse.message ?? "Unknown error")")
+                // Show user-friendly message for all registration/account issues
+                throw AuthError.registrationFailed("If you are a new user and your username is unique, check your email and verify your account.")
+            }
+
             if httpResponse.statusCode == 403 || httpResponse.statusCode == 401 {
-                // Try to parse error message
-                if let errorResponse = try? JSONDecoder().decode(JWTErrorResponse.self, from: data) {
-                    print("JWT Error: \(errorResponse.message ?? "Unknown error")")
+                // Try to parse error message from server
+                if let errorResponse = try? JSONDecoder().decode(JWTErrorResponse.self, from: data),
+                   let message = errorResponse.message {
+                    print("JWT Error: \(message)")
+                    throw AuthError.registrationFailed("If you are a new user and your username is unique, check your email and verify your account.")
                 }
                 throw AuthError.unauthorized
             }
-            
+
             guard (200...299).contains(httpResponse.statusCode) else {
                 print("JWT Auth failed with status: \(httpResponse.statusCode)")
                 throw AuthError.httpError(httpResponse.statusCode)
             }
-            
+
             // Parse JWT response
             let jwtResponse = try JSONDecoder().decode(JWTResponse.self, from: data)
             
@@ -110,11 +120,27 @@ class AuthManager: ObservableObject {
             }
 
             if httpResponse.statusCode == 400 || httpResponse.statusCode == 409 {
-                // Parse error message from response
+                // Try to parse error message from response in multiple formats
+                var errorMessage: String?
+
+                // Try WordPress error response format
                 if let errorResponse = try? JSONDecoder().decode(RegistrationErrorResponse.self, from: data) {
-                    if let message = errorResponse.message {
-                        throw AuthError.registrationFailed(message)
+                    errorMessage = errorResponse.message
+                }
+
+                // Try parsing as generic dictionary for WordPress error format
+                if errorMessage == nil, let jsonDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let message = jsonDict["message"] as? String {
+                        errorMessage = message
+                    } else if let data = jsonDict["data"] as? [String: Any], let message = data["message"] as? String {
+                        errorMessage = message
+                    } else if let errors = jsonDict["errors"] as? [String: Any], let errorDetail = errors.first?.value as? [String: Any], let message = errorDetail["message"] as? String {
+                        errorMessage = message
                     }
+                }
+
+                if let errorMessage = errorMessage {
+                    throw AuthError.registrationFailed(errorMessage)
                 }
                 throw AuthError.registrationFailed("Registration failed. Please check your information.")
             }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GuestProfileView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var showingLoginRegister = false
 
     var body: some View {
@@ -31,13 +32,15 @@ struct GuestProfileView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(themeColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(10)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(themeColors.background)
         .navigationTitle("Profile")
         .sheet(isPresented: $showingLoginRegister) {
             LoginRegisterView()

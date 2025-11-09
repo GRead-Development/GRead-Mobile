@@ -263,7 +263,7 @@ struct LibraryItemCard: View {
             // Progress Bar
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color(.systemGray6))
+                    .fill(Color.gray.opacity(0.3))
                     .frame(maxWidth: .infinity, maxHeight: 8)
 
                 Capsule()
@@ -277,7 +277,7 @@ struct LibraryItemCard: View {
                 .foregroundColor(.gray)
         }
         .padding()
-        .background(Color(.systemBackground))
+        .border(Color.gray, width: 1)
         .cornerRadius(12)
         .shadow(radius: 2)
         .contentShape(Rectangle())
@@ -745,39 +745,34 @@ struct ISBNImportSheet: View {
         Task {
             do {
                 // Call the ISBN-specific endpoint that queries OpenLibrary via the WordPress plugin
-                // Try to get a single book first, then fallback to array if needed
-                do {
-                    let result: Book = try await APIManager.shared.customRequest(
-                        endpoint: "/books/isbn?isbn=\(cleanISBN.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
-                        method: "GET",
-                        authenticated: true
-                    )
-                    await MainActor.run {
-                        searchResults = [result]
-                        isSearching = false
+                let result: Book = try await APIManager.shared.customRequest(
+                    endpoint: "/books/isbn?isbn=\(cleanISBN.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
+                    method: "GET",
+                    authenticated: true
+                )
+                await MainActor.run {
+                    searchResults = [result]
+                    isSearching = false
+                }
+            } catch let error as APIError {
+                // Handle specific API errors
+                await MainActor.run {
+                    switch error {
+                    case .httpError(404):
+                        errorMessage = "Book not found. Please check the ISBN and try again."
+                    case .decodingError:
+                        errorMessage = "Book not found. Please check the ISBN and try again."
+                    case .emptyResponse:
+                        errorMessage = "Book not found. Please check the ISBN and try again."
+                    default:
+                        errorMessage = "Failed to search ISBN. Please try again."
                     }
-                } catch {
-                    // Try as array response in case the endpoint returns [Book]
-                    let results: [Book] = try await APIManager.shared.customRequest(
-                        endpoint: "/books/isbn?isbn=\(cleanISBN.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
-                        method: "GET",
-                        authenticated: true
-                    )
-                    await MainActor.run {
-                        searchResults = results
-                        isSearching = false
-                    }
+                    isSearching = false
+                    searchResults = []
                 }
             } catch {
                 await MainActor.run {
-                    // Provide helpful error messages
-                    let message: String
-                    if error.localizedDescription.contains("404") || error.localizedDescription.contains("not found") {
-                        message = "Book not found. Please check the ISBN and try again."
-                    } else {
-                        message = "Failed to search ISBN: \(error.localizedDescription)"
-                    }
-                    errorMessage = message
+                    errorMessage = "Failed to search ISBN. Please try again."
                     isSearching = false
                     searchResults = []
                 }

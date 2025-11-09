@@ -6,7 +6,7 @@ class ThemeLoader {
     /// Load all themes from the Themes directory in the app bundle
     func loadThemesFromBundle() -> [AppTheme] {
         var themes: [AppTheme] = []
-        let themeNames = ["Forest", "Lavender", "Ocean", "Sunset"]
+        let themeNames = ["Forest", "Lavender", "Ocean", "Sunset", "Midnight", "Cherry", "Royal", "Coral", "Mint"]
 
         // Try to load from Themes directory first
         if let themesURL = Bundle.main.url(forResource: "Themes", withExtension: nil) {

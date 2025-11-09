@@ -14,110 +14,273 @@ struct ProfileView: View {
     @State private var showStatsView = false
     @State private var isLoadingStats = false
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         NavigationView {
-            List {
-                if let user = authManager.currentUser {
-                    Section {
-                        HStack {
+            ScrollView {
+                VStack(spacing: 0) {
+                    if let user = authManager.currentUser {
+
+                        // Profile Header
+                        VStack(spacing: 16) {
                             AsyncImage(url: URL(string: user.avatarUrls?.full ?? "")) { image in
                                 image.resizable()
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 60))
                                     .foregroundColor(.gray)
                             }
-                            .frame(width: 80, height: 80)
+                            .frame(width: 100, height: 100)
                             .clipShape(Circle())
 
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(spacing: 8) {
                                 Text(user.name)
                                     .font(.title2)
                                     .fontWeight(.bold)
+                                    .foregroundColor(themeColors.textPrimary)
 
                                 if let username = user.userLogin {
                                     Text("@\(username)")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                 }
                             }
                         }
-                        .padding(.vertical)
-                    }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                        .background(themeColors.primary.opacity(0.05))
 
-                    Section(header: Text("Your Stats")) {
-                        if let stats = stats {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    StatRow(label: "Points", value: "\(stats.points)", icon: "star.fill", color: .yellow)
-                                    StatRow(label: "Books Completed", value: "\(stats.booksCompleted)", icon: "checkmark.circle.fill", color: .green)
-                                    StatRow(label: "Pages Read", value: "\(stats.pagesRead)", icon: "book.fill", color: .blue)
-                                    StatRow(label: "Books Added", value: "\(stats.booksAdded)", icon: "plus.circle.fill", color: .purple)
+                        // Stats Grid
+                        VStack(spacing: 16) {
+                            Text("Your Reading Stats")
+                                .font(.headline)
+                                .foregroundColor(themeColors.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
+                                .padding(.top, 16)
+
+                            if let stats = stats {
+                                VStack(spacing: 12) {
+                                    HStack(spacing: 12) {
+                                        ProfileStatCard(
+                                            value: "\(stats.booksCompleted)",
+                                            subtext: "completed",
+                                            icon: "checkmark.circle.fill",
+                                            themeColors: themeColors
+                                        )
+                                        ProfileStatCard(
+                                            value: "\(stats.pagesRead)",
+                                            subtext: "read",
+                                            icon: "book.fill",
+                                            themeColors: themeColors
+                                        )
+                                    }
+                                    HStack(spacing: 12) {
+                                        ProfileStatCard(
+                                            value: "\(stats.booksAdded)",
+                                            subtext: "total",
+                                            icon: "plus.circle.fill",
+                                            themeColors: themeColors
+                                        )
+                                        ProfileStatCard(
+                                            value: "\(stats.points)",
+                                            subtext: "earned",
+                                            icon: "star.fill",
+                                            themeColors: themeColors
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal)
+                                .padding(.bottom, 16)
+                            } else if isLoadingStats {
+                                ProgressView()
+                                    .padding()
+                            }
+                        }
+                        .background(themeColors.background)
+
+                        // Settings Sections
+                        VStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Customization")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .padding(.horizontal)
+
+                                NavigationLink(destination: ThemeSelectionView()) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "paintpalette.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Active Theme")
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Text(themeManager.currentTheme.name)
+                                                .font(.caption)
+                                                .foregroundColor(themeColors.textSecondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
                                 }
                             }
-                        } else if isLoadingStats {
-                            ProgressView()
-                        } else {
-                            Text("No stats available")
-                                .foregroundColor(.gray)
-                        }
-                    }
 
-                    Section(header: Text("Customization")) {
-                        NavigationLink(destination: ThemeSelectionView()) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "paintpalette.fill")
-                                    .foregroundColor(.blue)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Active Theme")
-                                    Text(themeManager.currentTheme.name)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Settings")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .padding(.horizontal)
+
+                                NavigationLink(destination: BlockedUsersView()) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "hand.raised.fill")
+                                            .foregroundColor(.red)
+                                            .frame(width: 30)
+                                        Text("Blocked Users")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
                                 }
                             }
-                        }
-                    }
 
-                    Section(header: Text("Settings")) {
-                        NavigationLink(destination: BlockedUsersView()) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "hand.raised.fill")
-                                    .foregroundColor(.red)
-                                Text("Blocked Users")
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Support")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .padding(.horizontal)
+
+                                Link(destination: URL(string: "mailto:admin@gread.fun?subject=Contact%20Request")!) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "envelope.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        Text("Contact Developers")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
+                                }
+
+                                Link(destination: URL(string: "https://gread.fun/tutorials")!) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "book.circle.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        Text("Tutorials")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
+                                }
+
+                                Link(destination: URL(string: "mailto:admin@gread.fun?subject=Request%20Data%20Deletion")!) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "trash.fill")
+                                            .foregroundColor(.orange)
+                                            .frame(width: 30)
+                                        Text("Request Data Deletion")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
+                                }
                             }
-                        }
-                    }
 
-                    Section(header: Text("Support")) {
-                        Link(destination: URL(string: "mailto:admin@gread.fun?subject=Contact%20Request")!) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "envelope.fill")
-                                    .foregroundColor(.blue)
-                                Text("Contact Developers")
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Legal")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .padding(.horizontal)
+
+                                Link(destination: URL(string: "https://gread.fun/privacy-policy")!) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "shield.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        Text("Privacy Policy")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
+                                }
+
+                                Link(destination: URL(string: "https://gread.fun/tos")!) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "doc.text.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        Text("Terms of Service")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .border(themeColors.border, width: 1)
+                                    .cornerRadius(8)
+                                    .padding(.horizontal)
+                                }
                             }
-                        }
 
-                        Link(destination: URL(string: "mailto:admin@gread.fun?subject=Request%20Data%20Deletion")!) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "trash.fill")
-                                    .foregroundColor(.orange)
-                                Text("Request Data Deletion")
+                            Button(action: { authManager.logout() }) {
+                                HStack {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                    Text("Logout")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red)
+                                .cornerRadius(8)
                             }
+                            .padding()
+
+                            Spacer()
+                                .frame(height: 20)
                         }
-                    }
-
-                    Section(header: Text("Legal")) {
-                        Link("Privacy Policy", destination: URL(string: "https://gread.fun/privacy-policy")!)
-                        Link("Terms of Service", destination: URL(string: "https://gread.fun/tos")!)
-                    }
-                }
-
-                Section {
-                    Button(action: { authManager.logout() }) {
-                        Text("Logout")
-                            .foregroundColor(.red)
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(themeColors.background)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .task {
@@ -141,26 +304,37 @@ struct ProfileView: View {
     }
 }
 
-struct StatRow: View {
-    let label: String
+struct ProfileStatCard: View {
     let value: String
+    let subtext: String
     let icon: String
-    let color: Color
+    let themeColors: ThemeColors
 
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 20)
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(themeColors.primary)
 
-            Text(label)
-                .foregroundColor(.gray)
+                Spacer()
+            }
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(themeColors.textPrimary)
 
-            Text(value)
-                .fontWeight(.semibold)
+                Text(subtext)
+                    .font(.caption)
+                    .foregroundColor(themeColors.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .font(.caption)
+        .padding()
+        .background(themeColors.primary.opacity(0.08))
+        .border(themeColors.primary.opacity(0.3), width: 1)
+        .cornerRadius(12)
     }
 }

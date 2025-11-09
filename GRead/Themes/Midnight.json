@@ -1,0 +1,13 @@
+{
+  "id": "midnight",
+  "name": "Midnight",
+  "description": "Dark and sleek midnight theme",
+  "primary_color": "#00D9FF",
+  "secondary_color": "#0099CC",
+  "accent_color": "#00B4D8",
+  "background_color": "#0A1420",
+  "unlock_requirement": {
+    "stat": "books_completed",
+    "value": 5
+  }
+}

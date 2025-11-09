@@ -11,6 +11,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var showingProfile = false
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         ZStack {
@@ -45,20 +46,21 @@ struct MainTabView: View {
                         }
                 }
             }
+            .accentColor(themeColors.primary)
 
             // Login prompt overlay for guest users trying to post
             if authManager.isGuestMode {
                 VStack {
                     HStack {
                         Image(systemName: "info.circle.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(themeColors.primary)
                         Text("Sign in to post and interact")
                             .font(.caption)
                             .foregroundColor(.gray)
                         Spacer()
                     }
                     .padding()
-                    .background(Color.blue.opacity(0.1))
+                    .background(themeColors.primary.opacity(0.1))
                     .cornerRadius(10)
                     .padding()
 

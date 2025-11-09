@@ -1,0 +1,13 @@
+{
+  "id": "mint",
+  "name": "Mint",
+  "description": "Fresh mint and teal vibes",
+  "primary_color": "#06A77D",
+  "secondary_color": "#1DB584",
+  "accent_color": "#2DD4A4",
+  "background_color": "#F0FEF9",
+  "unlock_requirement": {
+    "stat": "books_added",
+    "value": 50
+  }
+}

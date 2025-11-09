@@ -1,0 +1,13 @@
+{
+  "id": "royal",
+  "name": "Royal",
+  "description": "Elegant purple and gold",
+  "primary_color": "#6A4C93",
+  "secondary_color": "#9B59B6",
+  "accent_color": "#F39C12",
+  "background_color": "#F8F5FF",
+  "unlock_requirement": {
+    "stat": "pages_read",
+    "value": 500
+  }
+}

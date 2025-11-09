@@ -3,6 +3,7 @@ import SwiftUI
 struct ThemeSelectionView: View {
     @ObservedObject var themeManager = ThemeManager.shared
     @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         VStack {
@@ -12,6 +13,7 @@ struct ThemeSelectionView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Unlocked Themes")
                             .font(.headline)
+                            .foregroundColor(themeColors.textPrimary)
                             .padding(.horizontal)
 
                         VStack(spacing: 12) {
@@ -33,6 +35,7 @@ struct ThemeSelectionView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Locked Themes")
                                 .font(.headline)
+                                .foregroundColor(themeColors.textPrimary)
                                 .padding(.horizontal)
 
                             VStack(spacing: 12) {
@@ -46,7 +49,10 @@ struct ThemeSelectionView: View {
                 }
                 .padding(.vertical)
             }
+            .scrollContentBackground(.hidden)
+            .background(themeColors.background)
         }
+        .background(themeColors.background)
         .navigationTitle("Select Theme")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -78,6 +84,19 @@ struct ThemeSelectionRow: View {
     var body: some View {
         Button(action: {
             themeManager.applyTheme(theme)
+            // Sync theme selection to backend
+            Task {
+                do {
+                    let _: UserCosmetics = try await APIManager.shared.customRequest(
+                        endpoint: "/user/cosmetics/theme",
+                        method: "POST",
+                        body: ["theme_id": theme.id],
+                        authenticated: true
+                    )
+                } catch {
+                    print("Failed to save theme to backend: \(error)")
+                }
+            }
         }) {
             HStack(spacing: 12) {
                 // Color preview

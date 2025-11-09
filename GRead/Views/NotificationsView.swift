@@ -5,7 +5,7 @@ struct NotificationsView: View {
     @State private var notifications: [Notification] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    
+
     var body: some View {
         NavigationView {
             Group {
