@@ -10,6 +10,8 @@ struct ActivityFeedView: View {
     @State private var hasMorePages = true
     @State private var selectedActivity: Activity?
     @State private var showingLoginPrompt = false
+    @State private var blockedUserIds: [Int] = []
+    @State private var mutedUserIds: [Int] = []
 
     // Sheet state - only one sheet can be open at a time
     enum SheetType: Identifiable {
@@ -82,6 +84,7 @@ struct ActivityFeedView: View {
                         .refreshable {
                             page = 1
                             hasMorePages = true
+                            await loadModerationLists()
                             await loadActivities()
                         }
                     }
@@ -131,6 +134,7 @@ struct ActivityFeedView: View {
                     Text("Why are you reporting this post?")
                 }
                 .task {
+                    await loadModerationLists()
                     if organizedActivities.isEmpty {
                         await loadActivities()
                     }
@@ -154,6 +158,7 @@ struct ActivityFeedView: View {
                     Task {
                         page = 1
                         hasMorePages = true
+                        await loadModerationLists()
                         await loadActivities()
                     }
                 })
@@ -173,6 +178,7 @@ struct ActivityFeedView: View {
                         Task {
                             page = 1
                             hasMorePages = true
+                            await loadModerationLists()
                             await loadActivities()
                         }
                     }
@@ -301,6 +307,21 @@ struct ActivityFeedView: View {
         }
     }
 
+    private func loadModerationLists() async {
+        do {
+            let blockedListResponse = try await APIManager.shared.getBlockedList()
+            let mutedListResponse = try await APIManager.shared.getMutedList()
+
+            await MainActor.run {
+                blockedUserIds = blockedListResponse.blockedUsers
+                mutedUserIds = mutedListResponse.mutedUsers
+            }
+        } catch {
+            // Silently fail - moderation lists are optional
+            print("Failed to load moderation lists: \(error)")
+        }
+    }
+
     private func organizeActivitiesIntoThreads(_ flatActivities: [Activity]) -> [Activity] {
         // Create a dictionary for quick lookup and organize activities
         var activityById: [Int: Activity] = [:]
@@ -335,7 +356,14 @@ struct ActivityFeedView: View {
 
         // Return only posts (activity_update) without filtering out other types
         // But organize comments under their parent posts
-        return flatActivities.filter { $0.type == "activity_update" }.compactMap { activityById[$0.id] }
+        // Also filter out posts from blocked and muted users
+        return flatActivities.filter { activity in
+            let isActivityUpdate = activity.type == "activity_update"
+            let userId = activity.userId ?? -1
+            let isNotBlocked = !blockedUserIds.contains(userId)
+            let isNotMuted = !mutedUserIds.contains(userId)
+            return isActivityUpdate && isNotBlocked && isNotMuted
+        }.compactMap { activityById[$0.id] }
     }
 }
 
