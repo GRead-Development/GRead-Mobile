@@ -276,20 +276,9 @@ struct ActivityFeedView: View {
                     return
                 }
 
-                let body: [String: Any] = [
-                    "user_id": finalUserId,
-                    "reason": reason
-                ]
-
-                struct ReportResponse: Codable {
-                    let success: Bool
-                    let message: String?
-                }
-
-                let response: ReportResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/user/report",
-                    method: "POST",
-                    body: body
+                let response = try await APIManager.shared.reportUser(
+                    userId: finalUserId,
+                    reason: reason
                 )
 
                 await MainActor.run {
@@ -301,7 +290,7 @@ struct ActivityFeedView: View {
                             }
                         }
                     } else {
-                        errorMessage = response.message ?? "Failed to submit report"
+                        errorMessage = response.message
                     }
                 }
             } catch {
