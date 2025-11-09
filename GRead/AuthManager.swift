@@ -65,6 +65,7 @@ class AuthManager: ObservableObject {
             
             await MainActor.run {
                 self.isAuthenticated = true
+                self.isGuestMode = false
                 saveAuthState()
             }
         } catch let error as AuthError {

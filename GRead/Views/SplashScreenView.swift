@@ -39,12 +39,9 @@ struct SplashScreenView: View {
                     Spacer()
 
                     // App Icon
-                    Image("appstore1024")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 120, height: 120)
-                        .cornerRadius(30)
-                        .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 8)
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 100))
+                        .foregroundColor(.blue)
                         .scaleEffect(scale)
                         .opacity(opacity)
 

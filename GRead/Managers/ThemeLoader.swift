@@ -6,28 +6,38 @@ class ThemeLoader {
     /// Load all themes from the Themes directory in the app bundle
     func loadThemesFromBundle() -> [AppTheme] {
         var themes: [AppTheme] = []
+        let themeNames = ["Forest", "Lavender", "Ocean", "Sunset"]
 
-        // Get the Themes directory in the app bundle
-        guard let themesURL = Bundle.main.url(forResource: "Themes", withExtension: nil) else {
-            print("⚠️ Themes directory not found in bundle")
-            return themes
+        // Try to load from Themes directory first
+        if let themesURL = Bundle.main.url(forResource: "Themes", withExtension: nil) {
+            do {
+                let fileURLs = try FileManager.default.contentsOfDirectory(
+                    at: themesURL,
+                    includingPropertiesForKeys: nil
+                )
+
+                // Filter for JSON files and load them
+                for fileURL in fileURLs where fileURL.pathExtension == "json" {
+                    if let theme = loadThemeFromFile(fileURL) {
+                        themes.append(theme)
+                        print("✅ Loaded theme from directory: \(theme.name)")
+                    }
+                }
+            } catch {
+                print("⚠️ Error reading Themes directory: \(error)")
+            }
         }
 
-        do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(
-                at: themesURL,
-                includingPropertiesForKeys: nil
-            )
-
-            // Filter for JSON files and load them
-            for fileURL in fileURLs where fileURL.pathExtension == "json" {
-                if let theme = loadThemeFromFile(fileURL) {
-                    themes.append(theme)
-                    print("✅ Loaded theme: \(theme.name)")
+        // Fallback: Try to load individual theme files by name
+        if themes.isEmpty {
+            for themeName in themeNames {
+                if let themeURL = Bundle.main.url(forResource: themeName, withExtension: "json") {
+                    if let theme = loadThemeFromFile(themeURL) {
+                        themes.append(theme)
+                        print("✅ Loaded theme file: \(theme.name)")
+                    }
                 }
             }
-        } catch {
-            print("❌ Error reading Themes directory: \(error)")
         }
 
         return themes

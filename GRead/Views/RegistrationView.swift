@@ -20,17 +20,6 @@ struct RegistrationView: View {
                 Spacer()
                     .frame(height: 20)
 
-                // Header
-                VStack(spacing: 8) {
-                    Text("Create Account")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-
-                    Text("Join the community")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-
                 // Registration Form
                 VStack(spacing: 16) {
                     // Username Field

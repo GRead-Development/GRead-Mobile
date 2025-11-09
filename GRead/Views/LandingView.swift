@@ -17,11 +17,11 @@ struct LandingView: View {
                         .foregroundColor(.blue)
 
                     VStack(spacing: 12) {
-                        Text("Welcome to GRead")
+                        Text("GRead")
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Connect with your community")
+                        Text("It's just fun.")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                     }

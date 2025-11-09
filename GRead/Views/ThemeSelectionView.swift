@@ -49,6 +49,19 @@ struct ThemeSelectionView: View {
         }
         .navigationTitle("Select Theme")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Check and unlock themes based on current stats
+            Task {
+                if let userId = AuthManager.shared.currentUser?.id {
+                    do {
+                        let stats = try await APIManager.shared.getUserStats(userId: userId)
+                        themeManager.checkAndUnlockCosmetics(stats: stats)
+                    } catch {
+                        print("Failed to load stats for theme unlock check: \(error)")
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -23,32 +23,17 @@ struct GuestProfileView: View {
 
             Spacer()
 
-            VStack(spacing: 12) {
-                Button(action: { showingLoginRegister = true }) {
-                    HStack {
-                        Image(systemName: "person.fill")
-                        Text("Sign In or Create Account")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+            Button(action: { showingLoginRegister = true }) {
+                HStack {
+                    Image(systemName: "person.fill")
+                    Text("Sign In or Create Account")
+                        .fontWeight(.semibold)
                 }
-
-                Button(action: logout) {
-                    HStack {
-                        Image(systemName: "arrow.backward.circle.fill")
-                        Text("Back to Start")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .foregroundColor(.black)
-                    .cornerRadius(10)
-                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)

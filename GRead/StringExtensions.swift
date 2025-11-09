@@ -3,7 +3,7 @@ extension String {
     func stripHTML() -> String {
         // Remove HTML tags
         var result = self.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        
+
         // Decode HTML entities
         result = result.replacingOccurrences(of: "&nbsp;", with: " ")
         result = result.replacingOccurrences(of: "&quot;", with: "\"")
@@ -14,7 +14,12 @@ extension String {
         result = result.replacingOccurrences(of: "&#8217;", with: "'")
         result = result.replacingOccurrences(of: "&#8220;", with: "\"")
         result = result.replacingOccurrences(of: "&#8221;", with: "\"")
-        
+
+        // Unescape JSON escape sequences
+        result = result.replacingOccurrences(of: "\\/", with: "/")
+        result = result.replacingOccurrences(of: "\\\"", with: "\"")
+        result = result.replacingOccurrences(of: "\\'", with: "'")
+
         // Trim whitespace
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }

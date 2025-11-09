@@ -14,23 +14,8 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     Spacer()
-                        .frame(height: 40)
-                    
-                    // Logo/Icon
-                    Image(systemName: "person.3.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.blue)
-                        .padding(.bottom, 10)
-                    
-                    Text("Welcome to GRead")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text("Connect with your community")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 20)
-                    
+                        .frame(height: 20)
+
                     // Login Form
                     VStack(spacing: 16) {
                         // Username Field

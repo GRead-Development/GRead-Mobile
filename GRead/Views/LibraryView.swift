@@ -5,15 +5,26 @@ struct LibraryView: View {
     @State private var libraryItems: [LibraryItem] = []
     @State private var isLoading = false
     @State private var showAddBook = false
+    @State private var showISBNImport = false
     @State private var searchText = ""
     @State private var selectedFilter: String = "all"
+    @State private var listRefreshID = UUID()
 
-    let filterOptions = ["all", "reading", "completed", "paused"]
+    let filterOptions = ["all", "reading", "completed"]
 
     var filteredItems: [LibraryItem] {
+        // Auto-mark as completed if progress equals page count
+        var items = libraryItems.map { item -> LibraryItem in
+            var mutableItem = item
+            if let totalPages = item.book?.totalPages, totalPages > 0, item.currentPage >= totalPages {
+                mutableItem.status = "completed"
+            }
+            return mutableItem
+        }
+
         let filtered = selectedFilter == "all"
-            ? libraryItems
-            : libraryItems.filter { $0.status == selectedFilter }
+            ? items
+            : items.filter { $0.status == selectedFilter }
 
         if searchText.isEmpty {
             return filtered
@@ -81,7 +92,7 @@ struct LibraryView: View {
                         // Library Items List
                         ScrollView {
                             VStack(spacing: 12) {
-                                ForEach(filteredItems) { item in
+                                ForEach(filteredItems, id: \.id) { item in
                                     LibraryItemCard(libraryItem: item, onDelete: {
                                         deleteBook(item)
                                     }, onProgressUpdate: { newPage in
@@ -90,13 +101,17 @@ struct LibraryView: View {
                                 }
                                 .padding()
                             }
+                            .id(listRefreshID)
                         }
                     }
                 }
             }
             .navigationTitle("My Library")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button(action: { showISBNImport = true }) {
+                        Image(systemName: "barcode")
+                    }
                     Button(action: { showAddBook = true }) {
                         Image(systemName: "plus")
                     }
@@ -104,6 +119,12 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showAddBook) {
                 AddBookSheet(isPresented: $showAddBook, onBookAdded: {
+                    loadLibrary()
+                })
+                .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showISBNImport) {
+                ISBNImportSheet(isPresented: $showISBNImport, onBookAdded: {
                     loadLibrary()
                 })
                 .environmentObject(authManager)
@@ -127,17 +148,24 @@ struct LibraryView: View {
     private func loadLibraryAsync() async {
         do {
             print("🔍 Attempting to load library...")
-            libraryItems = try await APIManager.shared.customRequest(
+            let items: [LibraryItem] = try await APIManager.shared.customRequest(
                 endpoint: "/library",
                 method: "GET",
                 authenticated: true
             )
-            print("✅ Successfully loaded \(libraryItems.count) items")
-            isLoading = false
+
+            await MainActor.run {
+                libraryItems = items
+                listRefreshID = UUID()
+                print("✅ Successfully loaded \(items.count) items")
+                isLoading = false
+            }
         } catch {
-            print("❌ Error loading library: \(error)")
-            print("   Error type: \(type(of: error))")
-            isLoading = false
+            await MainActor.run {
+                print("❌ Error loading library: \(error)")
+                print("   Error type: \(type(of: error))")
+                isLoading = false
+            }
         }
     }
 
@@ -150,7 +178,8 @@ struct LibraryView: View {
                     method: "DELETE",
                     authenticated: true
                 )
-                libraryItems.removeAll { $0.id == item.id }
+                // Reload library to ensure list state is correct
+                await loadLibraryAsync()
             } catch {
                 print("Error removing book: \(error)")
             }
@@ -169,9 +198,8 @@ struct LibraryView: View {
                     authenticated: true
                 )
 
-                if let index = libraryItems.firstIndex(where: { $0.id == item.id }) {
-                    libraryItems[index].currentPage = currentPage
-                }
+                // Reload the entire library to update status and reflect auto-completion
+                await loadLibraryAsync()
             } catch {
                 print("Error updating progress: \(error)")
             }
@@ -196,26 +224,6 @@ struct LibraryItemCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
-                // Book Cover Placeholder
-                if let coverUrl = libraryItem.book?.coverUrl, !coverUrl.isEmpty {
-                    AsyncImage(url: URL(string: coverUrl)) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        Color.gray
-                    }
-                    .frame(width: 60, height: 90)
-                    .cornerRadius(4)
-                } else {
-                    Image(systemName: "book.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(.gray)
-                        .frame(width: 60, height: 90)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(4)
-                }
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text(libraryItem.book?.title ?? "Unknown Book")
                         .font(.headline)
@@ -243,9 +251,6 @@ struct LibraryItemCard: View {
                 Spacer()
 
                 Menu {
-                    Button(action: { showProgressEditor = true }) {
-                        Label("Update Progress", systemImage: "pencil")
-                    }
                     Button(role: .destructive, action: onDelete) {
                         Label("Remove from Library", systemImage: "trash")
                     }
@@ -259,35 +264,26 @@ struct LibraryItemCard: View {
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color(.systemGray6))
-                    .frame(height: 8)
+                    .frame(maxWidth: .infinity, maxHeight: 8)
 
                 Capsule()
                     .fill(Color.blue)
-                    .frame(width: CGFloat(progressPercentage) / 100 * 270, height: 8)
+                    .frame(maxWidth: .infinity, maxHeight: 8)
+                    .scaleEffect(x: min(progressPercentage / 100.0, 1.0), anchor: .leading)
             }
 
-            HStack {
-                Text("\(Int(progressPercentage))% complete")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-
-                Spacer()
-
-                Button(action: { showProgressEditor = true }) {
-                    Text("Update")
-                        .font(.caption)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                }
-            }
+            Text("\(Int(progressPercentage))% complete")
+                .font(.caption)
+                .foregroundColor(.gray)
         }
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showProgressEditor = true
+        }
         .sheet(isPresented: $showProgressEditor) {
             ProgressEditorSheet(
                 isPresented: $showProgressEditor,
@@ -607,6 +603,166 @@ struct StatusBadge: View {
             .background(statusColor.opacity(0.2))
             .foregroundColor(statusColor)
             .cornerRadius(4)
+    }
+}
+
+// MARK: - ISBN Import Sheet
+struct ISBNImportSheet: View {
+    @EnvironmentObject var authManager: AuthManager
+    @Binding var isPresented: Bool
+    let onBookAdded: () -> Void
+
+    @State private var isbnInput = ""
+    @State private var isSearching = false
+    @State private var searchResults: [Book] = []
+    @State private var selectedBook: Book?
+    @State private var showConfirmation = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                VStack(spacing: 12) {
+                    Text("Import by ISBN")
+                        .font(.headline)
+                        .padding(.top)
+
+                    HStack {
+                        TextField("Enter ISBN...", text: $isbnInput)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.default)
+
+                        Button(action: searchByISBN) {
+                            if isSearching {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "magnifyingglass")
+                            }
+                        }
+                        .disabled(isbnInput.isEmpty || isSearching)
+                    }
+                    .padding()
+                }
+
+                if let error = errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding()
+                }
+
+                if !searchResults.isEmpty {
+                    List(searchResults) { book in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(book.title)
+                                .font(.headline)
+
+                            if let author = book.author {
+                                Text(author)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+
+                            if let isbn = book.isbn {
+                                Text("ISBN: \(isbn)")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedBook = book
+                            showConfirmation = true
+                        }
+                    }
+                } else if !isbnInput.isEmpty && !isSearching {
+                    VStack(spacing: 16) {
+                        Image(systemName: "books.vertical.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+
+                        Text("No books found")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+
+                        Text("Try a different ISBN")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxHeight: .infinity, alignment: .center)
+                } else {
+                    Spacer()
+                }
+
+                Spacer()
+            }
+            .navigationTitle("Import by ISBN")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+            }
+            .alert("Add Book", isPresented: $showConfirmation, actions: {
+                Button("Cancel", role: .cancel) { }
+                Button("Add") {
+                    if let book = selectedBook {
+                        addBook(book)
+                    }
+                }
+            }, message: {
+                if let book = selectedBook {
+                    Text("Add '\(book.title)' to your library?")
+                }
+            })
+        }
+    }
+
+    private func searchByISBN() {
+        isSearching = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let results: [Book] = try await APIManager.shared.customRequest(
+                    endpoint: "/books/search?query=\(isbnInput.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
+                    method: "GET",
+                    authenticated: true
+                )
+                await MainActor.run {
+                    searchResults = results
+                    isSearching = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Failed to search ISBN: \(error.localizedDescription)"
+                    isSearching = false
+                    searchResults = []
+                }
+            }
+        }
+    }
+
+    private func addBook(_ book: Book) {
+        Task {
+            do {
+                let body = ["book_id": book.id]
+                let _: EmptyResponse = try await APIManager.shared.customRequest(
+                    endpoint: "/library/add?book_id=\(book.id)",
+                    method: "POST",
+                    body: body,
+                    authenticated: true
+                )
+                onBookAdded()
+                isPresented = false
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Failed to add book: \(error.localizedDescription)"
+                }
+            }
+        }
     }
 }
 

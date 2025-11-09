@@ -24,7 +24,7 @@ struct LibraryItem: Codable, Identifiable {
     let id: Int
     let book: Book?
     var currentPage: Int
-    let status: String? // e.g., "reading", "completed", "paused"
+    var status: String? // e.g., "reading", "completed", "paused"
     let addedDate: String?
     let lastUpdated: String?
 

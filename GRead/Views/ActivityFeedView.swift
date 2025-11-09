@@ -12,6 +12,8 @@ struct ActivityFeedView: View {
     @State private var showingLoginPrompt = false
     @State private var blockedUserIds: [Int] = []
     @State private var mutedUserIds: [Int] = []
+    @State private var listRefreshID = UUID()
+    @State private var showLoginSheet = false
 
     // Sheet state - only one sheet can be open at a time
     enum SheetType: Identifiable {
@@ -52,8 +54,7 @@ struct ActivityFeedView: View {
                         }
                     } else {
                         List {
-                            // Only show top-level activities (those without a parent)
-                            ForEach(organizedActivities) { activity in
+                            ForEach(organizedActivities, id: \.id) { activity in
                                 ThreadedActivityView(
                                     activity: activity,
                                     onUserTap: { userId in
@@ -81,6 +82,7 @@ struct ActivityFeedView: View {
                             }
                         }
                         .listStyle(.plain)
+                        .id(listRefreshID)
                         .refreshable {
                             page = 1
                             hasMorePages = true
@@ -106,11 +108,15 @@ struct ActivityFeedView: View {
                 }
                 .alert("Sign In Required", isPresented: $showingLoginPrompt) {
                     Button("Sign In") {
-                        // Navigate to login
+                        showLoginSheet = true
                     }
                     Button("Cancel", role: .cancel) { }
                 } message: {
                     Text("You need to sign in to create posts. Please sign in or create an account.")
+                }
+                .sheet(isPresented: $showLoginSheet) {
+                    LoginRegisterView()
+                        .environmentObject(authManager)
                 }
                 .alert("Report Activity", isPresented: Binding(
                     get: { selectedActivity != nil },
@@ -212,10 +218,16 @@ struct ActivityFeedView: View {
                 if page == 1 {
                     activities = response
                 } else {
-                    activities.append(contentsOf: response)
+                    // Append new activities, but deduplicate in case of overlaps
+                    let newActivityIds = Set(response.map { $0.id })
+                    let existingIds = Set(activities.map { $0.id })
+                    let uniqueNewActivities = response.filter { !existingIds.contains($0.id) }
+                    activities.append(contentsOf: uniqueNewActivities)
                 }
                 // Organize flat list into hierarchy
                 organizedActivities = organizeActivitiesIntoThreads(activities)
+                // Force list to rebuild by changing ID
+                listRefreshID = UUID()
 
                 hasMorePages = response.count >= 20
                 isLoading = false
@@ -226,6 +238,7 @@ struct ActivityFeedView: View {
                     activities = []
                     organizedActivities = []
                 }
+                listRefreshID = UUID()
                 hasMorePages = false
                 isLoading = false
             }
@@ -645,7 +658,7 @@ struct CommentView: View {
                     "parent": activity.id
                 ]
 
-                let _: Activity = try await APIManager.shared.request(
+                let _: AnyCodable = try await APIManager.shared.request(
                     endpoint: "/activity",
                     method: "POST",
                     body: body
@@ -655,6 +668,8 @@ struct CommentView: View {
                     commentText = ""
                     isPosting = false
                     onPost()
+                    // Dismiss the comment view to show the nested comment in the main feed
+                    dismiss()
                 }
             } catch {
                 await MainActor.run {
