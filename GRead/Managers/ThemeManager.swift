@@ -7,10 +7,12 @@ class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
 
     @Published var currentTheme: AppTheme
+    @Published var currentFont: AppFont?
     @Published var userCosmetics: UserCosmetics
     @Published var availableCosmetics: [CosmeticUnlock] = []
 
     @Published var allThemes: [AppTheme] = []
+    @Published var allFonts: [AppFont] = []
 
     // MARK: - Built-in Themes (always available)
 
@@ -38,23 +40,51 @@ class ThemeManager: ObservableObject {
         unlockRequirement: nil
     )
 
+    // MARK: - Built-in Fonts (always available)
+
+    static let defaultFont = AppFont(
+        id: "system",
+        name: "System Default",
+        description: "The standard iOS system font",
+        fontFamily: ".AppleSystemUIFont",
+        isDarkTheme: false,
+        unlockRequirement: nil
+    )
+
+    static let serifFont = AppFont(
+        id: "serif",
+        name: "Serif",
+        description: "A classic serif font for a traditional feel",
+        fontFamily: "Georgia",
+        isDarkTheme: false,
+        unlockRequirement: nil
+    )
+
     // MARK: - Initialization
 
     private init() {
         currentTheme = ThemeManager.defaultTheme
+        currentFont = ThemeManager.defaultFont
         userCosmetics = UserCosmetics(
             activeTheme: nil,
             activeIcon: nil,
+            activeFont: nil,
             unlockedCosmetics: []
         )
 
-        // Load all themes from bundle and documents
+        // Load all themes and fonts from bundle and documents
         loadAllThemes()
+        loadAllFonts()
         loadUserCosmetics()
 
         // Only apply default theme if no saved theme was restored
         if userCosmetics.activeTheme == nil {
             applyTheme(ThemeManager.defaultTheme)
+        }
+
+        // Only apply default font if no saved font was restored
+        if userCosmetics.activeFont == nil {
+            applyFont(ThemeManager.defaultFont)
         }
     }
 
@@ -80,6 +110,28 @@ class ThemeManager: ObservableObject {
         loadAllThemes()
     }
 
+    // MARK: - Font Loading
+
+    private func loadAllFonts() {
+        var fonts = [ThemeManager.defaultFont, ThemeManager.serifFont]
+
+        // Load fonts from app bundle
+        let bundleFonts = FontLoader.shared.loadFontsFromBundle()
+        fonts.append(contentsOf: bundleFonts)
+
+        // Load custom fonts from Documents
+        let customFonts = FontLoader.shared.loadFontsFromDocuments()
+        fonts.append(contentsOf: customFonts)
+
+        self.allFonts = fonts
+        Logger.debug("Loaded \(fonts.count) total fonts")
+    }
+
+    /// Reload fonts (useful after user adds new font files)
+    func reloadFonts() {
+        loadAllFonts()
+    }
+
     // MARK: - Theme Management
 
     func applyTheme(_ theme: AppTheme) {
@@ -96,6 +148,28 @@ class ThemeManager: ObservableObject {
                 userCosmetics.activeTheme = themeId
             }
         }
+    }
+
+    // MARK: - Font Management
+
+    func applyFont(_ font: AppFont) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentFont = font
+        }
+        saveActiveFont(font.id)
+    }
+
+    func setActiveFont(_ fontId: String) {
+        if let font = allFonts.first(where: { $0.id == fontId }) {
+            if userCosmetics.unlockedCosmetics.contains(fontId) || fontId == "system" || fontId == "serif" {
+                applyFont(font)
+                userCosmetics.activeFont = fontId
+            }
+        }
+    }
+
+    func isFontUnlocked(_ fontId: String) -> Bool {
+        return fontId == "system" || fontId == "serif" || userCosmetics.unlockedCosmetics.contains(fontId)
     }
 
     // MARK: - Cosmetic Management
@@ -145,6 +219,11 @@ class ThemeManager: ObservableObject {
                 {
                     currentTheme = theme
                 }
+                if let activeFont = decoded.activeFont,
+                   let font = allFonts.first(where: { $0.id == activeFont })
+                {
+                    currentFont = font
+                }
             }
         }
     }
@@ -157,6 +236,11 @@ class ThemeManager: ObservableObject {
 
     private func saveActiveTheme(_ themeId: String) {
         userCosmetics.activeTheme = themeId
+        saveUserCosmetics()
+    }
+
+    private func saveActiveFont(_ fontId: String) {
+        userCosmetics.activeFont = fontId
         saveUserCosmetics()
     }
 

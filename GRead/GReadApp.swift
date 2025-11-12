@@ -29,22 +29,22 @@ struct GReadApp: App {
                     secondary: themeManager.currentTheme.secondary,
                     accent: themeManager.currentTheme.accent,
                     background: themeManager.currentTheme.background,
-                    textPrimary: themeManager.currentTheme.isDarkTheme ? Color(hex: "#FFFFFF") : Color(hex: "#1A1A1A"),
-                    textSecondary: themeManager.currentTheme.isDarkTheme ? Color(hex: "#CCCCCC") : Color(hex: "#666666"),
-                    border: themeManager.currentTheme.isDarkTheme ? Color(hex: "#444444") : Color(hex: "#EEEEEE"),
+                    textPrimary: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#FFFFFF") : Color(hex: "#1A1A1A"),
+                    textSecondary: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#CCCCCC") : Color(hex: "#666666"),
+                    border: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#444444") : Color(hex: "#EEEEEE"),
                     success: .green,
                     warning: .yellow,
                     error: .red,
-                    cardBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA"),
+                    cardBackground: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA"),
                     shadowColor: Color.black.opacity(0.15),
-                    headerBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F0E6FF"),
-                    navigationBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA"),
+                    headerBackground: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F0E6FF"),
+                    navigationBackground: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA"),
                     buttonBackground: themeManager.currentTheme.primary,
-                    inputBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#2A2A2A") : Color(hex: "#F5F5F5"),
-                    surfaceBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA")
+                    inputBackground: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#2A2A2A") : Color(hex: "#F5F5F5"),
+                    surfaceBackground: themeManager.currentTheme.effectiveIsDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA")
                 ))
                 // Apply preferred color scheme based on current theme
-                .preferredColorScheme(themeManager.currentTheme.isDarkTheme ? .dark : .light)
+                .preferredColorScheme(themeManager.currentTheme.effectiveIsDarkTheme ? .dark : .light)
 
                 // Splash screen overlay
                 if showSplash {

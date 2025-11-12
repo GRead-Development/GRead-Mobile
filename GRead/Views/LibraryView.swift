@@ -227,12 +227,12 @@ struct LibraryItemCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(libraryItem.book?.title ?? "Unknown Book")
+                    Text((libraryItem.book?.title ?? "Unknown Book").decodingHTMLEntities)
                         .font(.headline)
                         .lineLimit(2)
 
                     if let author = libraryItem.book?.author {
-                        Text(author)
+                        Text(author.decodingHTMLEntities)
                             .font(.subheadline)
                             .foregroundColor(themeColors.textSecondary)
                     }
@@ -421,17 +421,17 @@ struct AddBookSheet: View {
                     } else if !searchResults.isEmpty {
                         List(searchResults) { book in
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(book.title)
+                                Text(book.title.decodingHTMLEntities)
                                     .font(.headline)
-                                
+
                                 if let author = book.author {
-                                    Text(author)
+                                    Text(author.decodingHTMLEntities)
                                         .font(.subheadline)
                                         .foregroundColor(themeColors.textSecondary)
                                 }
 
                                 if let description = book.description {
-                                    Text(description)
+                                    Text(description.decodingHTMLEntities)
                                         .font(.caption)
                                         .foregroundColor(themeColors.textSecondary)
                                         .lineLimit(2)
@@ -675,11 +675,11 @@ struct ISBNImportSheet: View {
                 if !searchResults.isEmpty {
                     List(searchResults) { book in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(book.title)
+                            Text(book.title.decodingHTMLEntities)
                                 .font(.headline)
 
                             if let author = book.author {
-                                Text(author)
+                                Text(author.decodingHTMLEntities)
                                     .font(.subheadline)
                                     .foregroundColor(themeColors.textSecondary)
                             }

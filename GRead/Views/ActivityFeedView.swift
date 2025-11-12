@@ -246,10 +246,22 @@ struct ActivityFeedView: View {
                 hasMorePages = false
                 isLoading = false
             }
-        } catch {
+        } catch is CancellationError {
+            // Task was cancelled - this is normal and expected when view is dismissed
             await MainActor.run {
-                errorMessage = "Failed to load activities: \(error.localizedDescription)"
                 isLoading = false
+            }
+        } catch {
+            // Don't show error for cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                await MainActor.run {
+                    isLoading = false
+                }
+            } else {
+                await MainActor.run {
+                    errorMessage = "Failed to load activities: \(error.localizedDescription)"
+                    isLoading = false
+                }
             }
         }
     }
@@ -589,7 +601,7 @@ struct ActivityRowView: View {
             }
             
             if let content = activity.content, !content.isEmpty {
-                Text(content.stripHTML())
+                Text(content.decodingHTMLEntities.stripHTML())
                     .font(.body)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
@@ -839,7 +851,7 @@ struct CommentItemView: View {
             }
 
             if let content = comment.content {
-                Text(content.stripHTML())
+                Text(content.decodingHTMLEntities.stripHTML())
                     .font(.caption)
                     .lineLimit(nil)
             }

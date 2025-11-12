@@ -21,16 +21,19 @@ struct UnlockRequirement: Codable {
 
     // Helper to check if stats meet requirement
     func isMet(by stats: UserStats) -> Bool {
-        switch stat {
-        case "booksCompleted":
+        // Normalize stat name to handle both camelCase and snake_case
+        let normalizedStat = stat.replacingOccurrences(of: "_", with: "")
+
+        switch normalizedStat {
+        case "bookscompleted":
             return stats.booksCompleted >= value
-        case "pagesRead":
+        case "pagesread":
             return stats.pagesRead >= value
         case "points":
             return stats.points >= value
-        case "booksAdded":
+        case "booksadded":
             return stats.booksAdded >= value
-        case "approvedReports":
+        case "approvedreports":
             return stats.approvedReports >= value
         default:
             return false
@@ -134,6 +137,33 @@ struct AppTheme: Codable, Identifiable {
     var background: Color {
         Color(hex: backgroundColor)
     }
+
+    /// Auto-detect if theme is dark based on background color brightness
+    /// If not explicitly set, calculate from background color
+    var effectiveIsDarkTheme: Bool {
+        // If isDarkTheme is explicitly set, use that
+        // Otherwise auto-detect from background color
+        if unlockRequirement == nil && (id == "default" || id == "dark") {
+            // Built-in themes should use their explicit isDarkTheme value
+            return isDarkTheme
+        }
+
+        // Calculate brightness of background color
+        let hex = backgroundColor.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        let scanner = Scanner(string: hex)
+        var color: UInt64 = 0
+        scanner.scanHexInt64(&color)
+
+        let r = Double((color & 0xFF0000) >> 16) / 255.0
+        let g = Double((color & 0x00FF00) >> 8) / 255.0
+        let b = Double(color & 0x0000FF) / 255.0
+
+        // Calculate relative luminance using WCAG formula
+        let luminance = (0.299 * r + 0.587 * g + 0.114 * b)
+
+        // If background is dark (luminance < 0.5), it's a dark theme
+        return luminance < 0.5
+    }
 }
 
 // MARK: - Custom Icon
@@ -186,12 +216,21 @@ struct CosmeticUnlock: Codable, Identifiable {
 struct UserCosmetics: Codable {
     var activeTheme: String? // Theme ID
     var activeIcon: String? // Icon ID
+    var activeFont: String? // Font ID
     var unlockedCosmetics: [String] // Array of unlocked cosmetic IDs
 
     enum CodingKeys: String, CodingKey {
         case activeTheme = "active_theme"
         case activeIcon = "active_icon"
+        case activeFont = "active_font"
         case unlockedCosmetics = "unlocked_cosmetics"
+    }
+
+    init(activeTheme: String? = nil, activeIcon: String? = nil, activeFont: String? = nil, unlockedCosmetics: [String] = []) {
+        self.activeTheme = activeTheme
+        self.activeIcon = activeIcon
+        self.activeFont = activeFont
+        self.unlockedCosmetics = unlockedCosmetics
     }
 }
 

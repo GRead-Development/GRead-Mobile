@@ -86,11 +86,23 @@ struct NotificationsView: View {
                 notifications = []
                 isLoading = false
             }
-        } catch {
+        } catch is CancellationError {
+            // Task was cancelled - this is normal and expected when view is dismissed
             await MainActor.run {
-                errorMessage = "Failed to load notifications"
-                print("Notifications error: \(error)")
                 isLoading = false
+            }
+        } catch {
+            // Don't show error for cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                await MainActor.run {
+                    isLoading = false
+                }
+            } else {
+                await MainActor.run {
+                    errorMessage = "Failed to load notifications"
+                    Logger.debug("Notifications error: \(error)")
+                    isLoading = false
+                }
             }
         }
     }

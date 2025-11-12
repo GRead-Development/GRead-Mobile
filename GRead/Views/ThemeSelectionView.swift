@@ -77,6 +77,7 @@ struct ThemeSelectionRow: View {
     @ObservedObject var themeManager = ThemeManager.shared
     @Environment(\.themeColors) var themeColors
     let theme: AppTheme
+    let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var isActive: Bool {
         themeManager.currentTheme.id == theme.id
@@ -84,20 +85,8 @@ struct ThemeSelectionRow: View {
 
     var body: some View {
         Button(action: {
+            hapticFeedback.impactOccurred()
             themeManager.applyTheme(theme)
-            // Sync theme selection to backend
-            Task {
-                do {
-                    let _: UserCosmetics = try await APIManager.shared.customRequest(
-                        endpoint: "/user/cosmetics/theme",
-                        method: "POST",
-                        body: ["theme_id": theme.id],
-                        authenticated: true
-                    )
-                } catch {
-                    print("Failed to save theme to backend: \(error)")
-                }
-            }
         }) {
             HStack(spacing: 12) {
                 // Color preview

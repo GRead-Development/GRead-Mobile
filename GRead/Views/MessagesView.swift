@@ -77,12 +77,12 @@ struct MessageRowView: View {
                 .frame(width: 10, height: 10)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(message.subject?.rendered ?? "No subject")
+                Text((message.subject?.rendered ?? "No subject").decodingHTMLEntities)
                     .font(.headline)
                     .fontWeight(message.unreadCount ?? 0 > 0 ? .bold : .regular)
-                
+
                 if let content = message.message?.rendered {
-                    Text(content.stripHTML())
+                    Text(content.decodingHTMLEntities.stripHTML())
                         .font(.subheadline)
                         .foregroundColor(themeColors.textSecondary)
                         .lineLimit(2)
@@ -128,7 +128,7 @@ struct MessageThreadView: View {
             }
             .padding()
         }
-        .navigationTitle(message.subject?.rendered ?? "Message")
+        .navigationTitle((message.subject?.rendered ?? "Message").decodingHTMLEntities)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -363,6 +363,69 @@ class APIManager {
             authenticated: true
         )
     }
+
+    // MARK: - Friend Endpoints
+
+    /// Get list of friends for a user
+    func getFriends(userId: Int) async throws -> FriendsListResponse {
+        return try await customRequest(
+            endpoint: "/friends/\(userId)",
+            authenticated: false
+        )
+    }
+
+    /// Get pending friend requests for the current user
+    func getPendingFriendRequests() async throws -> PendingRequestsResponse {
+        return try await customRequest(
+            endpoint: "/friends/requests/pending",
+            authenticated: true
+        )
+    }
+
+    /// Send a friend request to another user
+    func sendFriendRequest(friendId: Int) async throws -> FriendRequestResponse {
+        return try await customRequest(
+            endpoint: "/friends/request",
+            method: "POST",
+            body: ["friend_id": friendId],
+            authenticated: true
+        )
+    }
+
+    /// Accept a friend request
+    func acceptFriendRequest(requestId: Int) async throws -> FriendRequestResponse {
+        return try await customRequest(
+            endpoint: "/friends/request/\(requestId)/accept",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Reject a friend request
+    func rejectFriendRequest(requestId: Int) async throws -> FriendRequestResponse {
+        return try await customRequest(
+            endpoint: "/friends/request/\(requestId)/reject",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Remove a friend
+    func removeFriend(friendId: Int) async throws -> FriendRequestResponse {
+        return try await customRequest(
+            endpoint: "/friends/\(friendId)/remove",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Search for users
+    func searchUsers(query: String, page: Int = 1, perPage: Int = 20) async throws -> UserSearchResponse {
+        return try await customRequest(
+            endpoint: "/members/search?search=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&per_page=\(perPage)&page=\(page)",
+            authenticated: false
+        )
+    }
 }
 
 enum APIError: LocalizedError {

@@ -14,8 +14,11 @@ struct ProfileView: View {
     @State private var showStatsView = false
     @State private var isLoadingStats = false
     @State private var statsLoadError: String?
+    @State private var showNotifications = false
     @ObservedObject var themeManager = ThemeManager.shared
     @Environment(\.themeColors) var themeColors
+
+    let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
         NavigationView {
@@ -65,13 +68,13 @@ struct ProfileView: View {
                                     HStack(spacing: 12) {
                                         ProfileStatCard(
                                             value: "\(stats.booksCompleted)",
-                                            subtext: "completed",
+                                            label: "Books Completed",
                                             icon: "checkmark.circle.fill",
                                             themeColors: themeColors
                                         )
                                         ProfileStatCard(
                                             value: "\(stats.pagesRead)",
-                                            subtext: "read",
+                                            label: "Pages Read",
                                             icon: "book.fill",
                                             themeColors: themeColors
                                         )
@@ -79,13 +82,13 @@ struct ProfileView: View {
                                     HStack(spacing: 12) {
                                         ProfileStatCard(
                                             value: "\(stats.booksAdded)",
-                                            subtext: "total",
+                                            label: "Books Added",
                                             icon: "plus.circle.fill",
                                             themeColors: themeColors
                                         )
                                         ProfileStatCard(
                                             value: "\(stats.points)",
-                                            subtext: "earned",
+                                            label: "Points Earned",
                                             icon: "star.fill",
                                             themeColors: themeColors
                                         )
@@ -124,6 +127,61 @@ struct ProfileView: View {
                         }
                         .background(themeColors.background)
 
+                        // Social Sections (Hidden for now)
+                        /*
+                        VStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Social")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .padding(.horizontal)
+
+                                NavigationLink(destination: FriendsListView(userId: user.id, isCurrentUser: true)) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "person.2.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        Text("Friends")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+
+                                NavigationLink(destination: FriendRequestsView()) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "person.badge.plus.fill")
+                                            .foregroundColor(themeColors.secondary)
+                                            .frame(width: 30)
+                                        Text("Friend Requests")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 16)
+                        */
+
                         // Settings Sections
                         VStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 12) {
@@ -150,8 +208,37 @@ struct ProfileView: View {
                                     }
                                     .padding()
                                     .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
                                     .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+
+                                NavigationLink(destination: FontSelectionView()) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "textformat")
+                                            .foregroundColor(themeColors.secondary)
+                                            .frame(width: 30)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Font Selection")
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Text(themeManager.currentFont?.name ?? "System Default")
+                                                .font(.caption)
+                                                .foregroundColor(themeColors.textSecondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
                                     .padding(.horizontal)
                                 }
                             }
@@ -175,8 +262,11 @@ struct ProfileView: View {
                                     }
                                     .padding()
                                     .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
                                     .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
                                     .padding(.horizontal)
                                 }
                             }
@@ -267,8 +357,11 @@ struct ProfileView: View {
                                     }
                                     .padding()
                                     .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
                                     .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
                                     .padding(.horizontal)
                                 }
 
@@ -285,13 +378,19 @@ struct ProfileView: View {
                                     }
                                     .padding()
                                     .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
                                     .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
                                     .padding(.horizontal)
                                 }
                             }
 
-                            Button(action: { authManager.logout() }) {
+                            Button(action: {
+                                hapticFeedback.impactOccurred()
+                                authManager.logout()
+                            }) {
                                 HStack {
                                     Image(systemName: "arrow.right.circle.fill")
                                     Text("Logout")
@@ -315,6 +414,15 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .navigationViewStyle(.stack)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: NotificationsView()) {
+                        Image(systemName: "bell.fill")
+                            .foregroundColor(themeColors.primary)
+                            .font(.body)
+                    }
+                }
+            }
             .task {
                 loadUserStats()
             }
@@ -340,7 +448,7 @@ struct ProfileView: View {
 
 struct ProfileStatCard: View {
     let value: String
-    let subtext: String
+    let label: String
     let icon: String
     let themeColors: ThemeColors
 
@@ -360,9 +468,10 @@ struct ProfileStatCard: View {
                     .fontWeight(.bold)
                     .foregroundColor(themeColors.textPrimary)
 
-                Text(subtext)
+                Text(label)
                     .font(.caption)
                     .foregroundColor(themeColors.textSecondary)
+                    .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
