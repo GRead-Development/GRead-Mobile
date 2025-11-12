@@ -31,10 +31,20 @@ struct GReadApp: App {
                     background: themeManager.currentTheme.background,
                     textPrimary: themeManager.currentTheme.isDarkTheme ? Color(hex: "#FFFFFF") : Color(hex: "#1A1A1A"),
                     textSecondary: themeManager.currentTheme.isDarkTheme ? Color(hex: "#CCCCCC") : Color(hex: "#666666"),
-                    border: themeManager.currentTheme.isDarkTheme ? Color(hex: "#444444") : Color(hex: "#EEEEEE")
+                    border: themeManager.currentTheme.isDarkTheme ? Color(hex: "#444444") : Color(hex: "#EEEEEE"),
+                    success: .green,
+                    warning: .yellow,
+                    error: .red,
+                    cardBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA"),
+                    shadowColor: Color.black.opacity(0.15),
+                    headerBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F0E6FF"),
+                    navigationBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA"),
+                    buttonBackground: themeManager.currentTheme.primary,
+                    inputBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#2A2A2A") : Color(hex: "#F5F5F5"),
+                    surfaceBackground: themeManager.currentTheme.isDarkTheme ? Color(hex: "#1E1E1E") : Color(hex: "#F8F9FA")
                 ))
-                // Force light color scheme to ensure custom themes control the UI appearance
-                .preferredColorScheme(.light)
+                // Apply preferred color scheme based on current theme
+                .preferredColorScheme(themeManager.currentTheme.isDarkTheme ? .dark : .light)
 
                 // Splash screen overlay
                 if showSplash {

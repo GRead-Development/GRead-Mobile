@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		186B44502EBDA1610054BCA4 /* GRead.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GRead.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		186C445F2EBDA2610054BCA4 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GRead/Themes; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -17,6 +18,10 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXBuildFile section */
+		186C44602EBDA2620054BCA4 /* Themes in Resources */ = {isa = PBXBuildFile; fileRef = 186C445F2EBDA2610054BCA4 /* Themes */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		186B444D2EBDA1610054BCA4 /* Frameworks */ = {
@@ -109,6 +114,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				186C44602EBDA2620054BCA4 /* Themes in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

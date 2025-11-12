@@ -68,6 +68,44 @@ struct AppTheme: Codable, Identifiable {
     let isDarkTheme: Bool // Light (false) or Dark (true) text scheme
     let unlockRequirement: UnlockRequirement?
 
+    init(id: String, name: String, description: String, primaryColor: String, secondaryColor: String, accentColor: String, backgroundColor: String, isDarkTheme: Bool = false, unlockRequirement: UnlockRequirement? = nil) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.primaryColor = primaryColor
+        self.secondaryColor = secondaryColor
+        self.accentColor = accentColor
+        self.backgroundColor = backgroundColor
+        self.isDarkTheme = isDarkTheme
+        self.unlockRequirement = unlockRequirement
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decode(String.self, forKey: .description)
+        primaryColor = try container.decode(String.self, forKey: .primaryColor)
+        secondaryColor = try container.decode(String.self, forKey: .secondaryColor)
+        accentColor = try container.decode(String.self, forKey: .accentColor)
+        backgroundColor = try container.decode(String.self, forKey: .backgroundColor)
+        isDarkTheme = try container.decodeIfPresent(Bool.self, forKey: .isDarkTheme) ?? false
+        unlockRequirement = try container.decodeIfPresent(UnlockRequirement.self, forKey: .unlockRequirement)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(description, forKey: .description)
+        try container.encode(primaryColor, forKey: .primaryColor)
+        try container.encode(secondaryColor, forKey: .secondaryColor)
+        try container.encode(accentColor, forKey: .accentColor)
+        try container.encode(backgroundColor, forKey: .backgroundColor)
+        try container.encode(isDarkTheme, forKey: .isDarkTheme)
+        try container.encodeIfPresent(unlockRequirement, forKey: .unlockRequirement)
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case name

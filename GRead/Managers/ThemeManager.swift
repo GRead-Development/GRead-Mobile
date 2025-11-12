@@ -33,7 +33,7 @@ class ThemeManager: ObservableObject {
         primaryColor: "#A29BFE",
         secondaryColor: "#74B9FF",
         accentColor: "#FF7675",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#121212",
         isDarkTheme: true,
         unlockRequirement: nil
     )
@@ -51,7 +51,11 @@ class ThemeManager: ObservableObject {
         // Load all themes from bundle and documents
         loadAllThemes()
         loadUserCosmetics()
-        applyTheme(ThemeManager.defaultTheme)
+
+        // Only apply default theme if no saved theme was restored
+        if userCosmetics.activeTheme == nil {
+            applyTheme(ThemeManager.defaultTheme)
+        }
     }
 
     // MARK: - Theme Loading
