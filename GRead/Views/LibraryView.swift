@@ -278,11 +278,14 @@ struct LibraryItemCard: View {
                 .font(.caption)
                 .foregroundColor(themeColors.textSecondary)
         }
-        .padding()
+        .padding(14)
         .background(themeColors.cardBackground)
-        .border(themeColors.border, width: 1)
         .cornerRadius(12)
-        .shadow(radius: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(themeColors.border, lineWidth: 1)
+        )
+        .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
         .contentShape(Rectangle())
         .onTapGesture {
             showProgressEditor = true

@@ -173,9 +173,10 @@ struct ThemeCardView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(themeColors.primary)
-                    .cornerRadius(6)
+                    .cornerRadius(8)
+                    .shadow(color: themeColors.primary.opacity(0.3), radius: 3, x: 0, y: 1)
             } else if isUnlocked {
                 Button(action: {
                     themeManager.applyTheme(theme)
@@ -184,10 +185,14 @@ struct ThemeCardView: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 8)
                         .background(themeColors.cardBackground)
-                        .foregroundColor(.primary)
-                        .cornerRadius(6)
+                        .foregroundColor(themeColors.textPrimary)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(themeColors.border, lineWidth: 1)
+                        )
                 }
             }
         }
@@ -198,6 +203,7 @@ struct ThemeCardView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isActive ? themeColors.primary : Color.clear, lineWidth: 2)
         )
+        .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
     }
 }
 
@@ -251,6 +257,7 @@ struct LockedThemeCardView: View {
         .background(themeColors.cardBackground.opacity(0.5))
         .cornerRadius(12)
         .opacity(0.7)
+        .shadow(color: themeColors.shadowColor, radius: 3, x: 0, y: 1)
     }
 }
 

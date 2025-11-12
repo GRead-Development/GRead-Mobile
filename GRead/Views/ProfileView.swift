@@ -366,9 +366,13 @@ struct ProfileStatCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
+        .padding(16)
         .background(themeColors.primary.opacity(0.08))
-        .border(themeColors.primary.opacity(0.3), width: 1)
-        .cornerRadius(12)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeColors.primary.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
     }
 }

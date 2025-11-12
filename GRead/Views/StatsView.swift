@@ -211,9 +211,10 @@ struct StatCard: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding()
+        .padding(16)
         .background(themeColors.cardBackground)
         .cornerRadius(12)
+        .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
     }
 }
 

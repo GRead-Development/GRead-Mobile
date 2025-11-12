@@ -30,15 +30,20 @@ struct LoginView: View {
                                 Image(systemName: "person.fill")
                                     .foregroundColor(themeColors.textSecondary)
                                     .frame(width: 20)
-                                
+
                                 TextField("Enter your username", text: $username)
                                     .autocapitalization(.none)
                                     .disableAutocorrection(true)
                                     .textContentType(.username)
                             }
-                            .padding()
-                            .background(themeColors.textSecondary.opacity(0.1))
-                            .cornerRadius(10)
+                            .padding(14)
+                            .background(themeColors.inputBackground)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(themeColors.border, lineWidth: 1)
+                            )
+                            .shadow(color: themeColors.shadowColor, radius: 2, x: 0, y: 1)
                         }
                         
                         // Password Field
@@ -52,7 +57,7 @@ struct LoginView: View {
                                 Image(systemName: "lock.fill")
                                     .foregroundColor(themeColors.textSecondary)
                                     .frame(width: 20)
-                                
+
                                 if showPassword {
                                     TextField("Enter your password", text: $password)
                                         .textContentType(.password)
@@ -60,7 +65,7 @@ struct LoginView: View {
                                     SecureField("Enter your password", text: $password)
                                         .textContentType(.password)
                                 }
-                                
+
                                 Button {
                                     showPassword.toggle()
                                 } label: {
@@ -68,9 +73,14 @@ struct LoginView: View {
                                         .foregroundColor(themeColors.textSecondary)
                                 }
                             }
-                            .padding()
-                            .background(themeColors.textSecondary.opacity(0.1))
-                            .cornerRadius(10)
+                            .padding(14)
+                            .background(themeColors.inputBackground)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(themeColors.border, lineWidth: 1)
+                            )
+                            .shadow(color: themeColors.shadowColor, radius: 2, x: 0, y: 1)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -84,13 +94,17 @@ struct LoginView: View {
                                 .font(.caption)
                                 .foregroundColor(themeColors.error)
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .background(themeColors.error.opacity(0.1))
-                        .cornerRadius(10)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(themeColors.error.opacity(0.3), lineWidth: 1)
+                        )
                         .padding(.horizontal, 24)
                     }
-                    
+
                     // Login Button
                     Button(action: login) {
                         HStack {
@@ -103,13 +117,14 @@ struct LoginView: View {
                             }
                         }
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(14)
                         .background(
                             (username.isEmpty || password.isEmpty || isLoading) ?
                             themeColors.textSecondary.opacity(0.3) : themeColors.primary
                         )
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(12)
+                        .shadow(color: themeColors.primary.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                     .disabled(isLoading || username.isEmpty || password.isEmpty)
                     .padding(.horizontal, 24)

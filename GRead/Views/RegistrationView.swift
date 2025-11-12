@@ -39,9 +39,14 @@ struct RegistrationView: View {
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
                         }
-                        .padding()
-                        .background(themeColors.textSecondary.opacity(0.1))
-                        .cornerRadius(10)
+                        .padding(14)
+                        .background(themeColors.inputBackground)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(themeColors.border, lineWidth: 1)
+                        )
+                        .shadow(color: themeColors.shadowColor, radius: 2, x: 0, y: 1)
                     }
 
                     // Email Field
@@ -62,9 +67,14 @@ struct RegistrationView: View {
                                 .textContentType(.emailAddress)
                                 .keyboardType(.emailAddress)
                         }
-                        .padding()
-                        .background(themeColors.textSecondary.opacity(0.1))
-                        .cornerRadius(10)
+                        .padding(14)
+                        .background(themeColors.inputBackground)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(themeColors.border, lineWidth: 1)
+                        )
+                        .shadow(color: themeColors.shadowColor, radius: 2, x: 0, y: 1)
                     }
 
                     // Password Field
@@ -94,9 +104,14 @@ struct RegistrationView: View {
                                     .foregroundColor(themeColors.textSecondary)
                             }
                         }
-                        .padding()
-                        .background(themeColors.textSecondary.opacity(0.1))
-                        .cornerRadius(10)
+                        .padding(14)
+                        .background(themeColors.inputBackground)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(themeColors.border, lineWidth: 1)
+                        )
+                        .shadow(color: themeColors.shadowColor, radius: 2, x: 0, y: 1)
                     }
 
                     // Confirm Password Field
@@ -126,9 +141,14 @@ struct RegistrationView: View {
                                     .foregroundColor(themeColors.textSecondary)
                             }
                         }
-                        .padding()
-                        .background(themeColors.textSecondary.opacity(0.1))
-                        .cornerRadius(10)
+                        .padding(14)
+                        .background(themeColors.inputBackground)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(themeColors.border, lineWidth: 1)
+                        )
+                        .shadow(color: themeColors.shadowColor, radius: 2, x: 0, y: 1)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -136,18 +156,23 @@ struct RegistrationView: View {
                 // Message (Error or Success)
                 if let error = errorMessage {
                     let isSuccessMessage = error.lowercased().contains("account created") || error.lowercased().contains("check your email")
+                    let messageColor = isSuccessMessage ? themeColors.success : themeColors.error
 
                     HStack(spacing: 8) {
                         Image(systemName: isSuccessMessage ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(isSuccessMessage ? themeColors.success : themeColors.error)
+                            .foregroundColor(messageColor)
                         Text(error)
                             .font(.caption)
-                            .foregroundColor(isSuccessMessage ? themeColors.success : themeColors.error)
+                            .foregroundColor(messageColor)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(isSuccessMessage ? themeColors.success.opacity(0.1) : themeColors.error.opacity(0.1))
-                    .cornerRadius(10)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(messageColor.opacity(0.1))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(messageColor.opacity(0.3), lineWidth: 1)
+                    )
                     .padding(.horizontal, 24)
                 }
 
@@ -196,10 +221,11 @@ struct RegistrationView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(14)
                     .background(isFormValid && agreedToTerms && !isLoading ? themeColors.primary : themeColors.textSecondary.opacity(0.3))
                     .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .cornerRadius(12)
+                    .shadow(color: themeColors.primary.opacity(0.3), radius: 4, x: 0, y: 2)
                 }
                 .disabled(!isFormValid || !agreedToTerms || isLoading)
                 .padding(.horizontal, 24)
