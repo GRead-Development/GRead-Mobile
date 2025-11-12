@@ -65,6 +65,7 @@ struct AppTheme: Codable, Identifiable {
     let secondaryColor: String
     let accentColor: String
     let backgroundColor: String
+    let isDarkTheme: Bool // Light (false) or Dark (true) text scheme
     let unlockRequirement: UnlockRequirement?
 
     enum CodingKeys: String, CodingKey {
@@ -75,6 +76,7 @@ struct AppTheme: Codable, Identifiable {
         case secondaryColor = "secondary_color"
         case accentColor = "accent_color"
         case backgroundColor = "background_color"
+        case isDarkTheme = "is_dark_theme"
         case unlockRequirement = "unlock_requirement"
     }
 

@@ -30,7 +30,7 @@ struct ProfileView: View {
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
                                     .font(.system(size: 60))
-                                    .foregroundColor(themeColors.textSecondary)
+                                    .foregroundColor(themeColors.primary)
                             }
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
@@ -49,7 +49,7 @@ struct ProfileView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 24)
-                        .background(themeColors.primary.opacity(0.05))
+                        .background(themeColors.headerBackground)
 
                         // Stats Grid
                         VStack(spacing: 16) {

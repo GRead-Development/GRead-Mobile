@@ -28,10 +28,13 @@ struct GReadApp: App {
                     primary: themeManager.currentTheme.primary,
                     secondary: themeManager.currentTheme.secondary,
                     accent: themeManager.currentTheme.accent,
-                    background: themeManager.currentTheme.background
+                    background: themeManager.currentTheme.background,
+                    textPrimary: themeManager.currentTheme.isDarkTheme ? Color(hex: "#FFFFFF") : Color(hex: "#1A1A1A"),
+                    textSecondary: themeManager.currentTheme.isDarkTheme ? Color(hex: "#CCCCCC") : Color(hex: "#666666"),
+                    border: themeManager.currentTheme.isDarkTheme ? Color(hex: "#444444") : Color(hex: "#EEEEEE")
                 ))
-                // Lock to light color scheme to use custom theme consistently
-                .preferredColorScheme(nil)
+                // Force light color scheme to ensure custom themes control the UI appearance
+                .preferredColorScheme(.light)
 
                 // Splash screen overlay
                 if showSplash {

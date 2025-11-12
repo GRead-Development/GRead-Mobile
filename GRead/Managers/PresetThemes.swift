@@ -23,15 +23,15 @@ struct PresetThemes {
         primary: Color(hex: "#A29BFE"),      // Light purple
         secondary: Color(hex: "#74B9FF"),    // Light blue
         accent: Color(hex: "#FF7675"),       // Coral
-        background: Color(hex: "#1A1A2E"),   // Dark navy
-        textPrimary: Color(hex: "#EAEAEA"),  // Light gray text
-        textSecondary: Color(hex: "#BDBDBD"), // Medium gray
-        border: Color(hex: "#2D2D44"),       // Dark border
+        background: Color(hex: "#FFFFFF"),   // White background
+        textPrimary: Color(hex: "#1A1A1A"),  // Dark text
+        textSecondary: Color(hex: "#555555"), // Medium gray
+        border: Color(hex: "#DDDDDD"),       // Light border
         success: Color(hex: "#00D2D3"),      // Cyan
         warning: Color(hex: "#FDCB6E"),      // Yellow
         error: Color(hex: "#FF7675"),        // Coral
-        cardBackground: Color(hex: "#16213E"), // Slightly lighter dark
-        shadowColor: Color.black.opacity(0.3)
+        cardBackground: Color(hex: "#F0F0F0"), // Light gray surfaces
+        shadowColor: Color.black.opacity(0.1)
     )
 
     // Fun/quirky theme - rainbow inspired

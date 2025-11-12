@@ -20,11 +20,21 @@ struct ThemeColors {
     let cardBackground: Color
     let shadowColor: Color
 
+    // UI Element Colors - Tagged System
+    let headerBackground: Color
+    let navigationBackground: Color
+    let buttonBackground: Color
+    let inputBackground: Color
+    let surfaceBackground: Color
+
     // Initialize with all colors
     init(primary: Color, secondary: Color, accent: Color, background: Color,
          textPrimary: Color? = nil, textSecondary: Color? = nil, border: Color? = nil,
          success: Color = .green, warning: Color = .yellow, error: Color = .red,
-         cardBackground: Color? = nil, shadowColor: Color? = nil) {
+         cardBackground: Color? = nil, shadowColor: Color? = nil,
+         headerBackground: Color? = nil, navigationBackground: Color? = nil,
+         buttonBackground: Color? = nil, inputBackground: Color? = nil,
+         surfaceBackground: Color? = nil) {
         self.primary = primary
         self.secondary = secondary
         self.accent = accent
@@ -37,6 +47,13 @@ struct ThemeColors {
         self.error = error
         self.cardBackground = cardBackground ?? (background == Color(hex: "#FFFFFF") ? Color(hex: "#F8F9FA") : Color(hex: "#1E1E1E"))
         self.shadowColor = shadowColor ?? Color.black.opacity(0.15)
+
+        // Tagged UI elements with smart defaults
+        self.headerBackground = headerBackground ?? Color(hex: "#F0E6FF")
+        self.navigationBackground = navigationBackground ?? cardBackground ?? (background == Color(hex: "#FFFFFF") ? Color(hex: "#F8F9FA") : Color(hex: "#1E1E1E"))
+        self.buttonBackground = buttonBackground ?? primary
+        self.inputBackground = inputBackground ?? Color(hex: "#F5F5F5")
+        self.surfaceBackground = surfaceBackground ?? cardBackground ?? (background == Color(hex: "#FFFFFF") ? Color(hex: "#F8F9FA") : Color(hex: "#1E1E1E"))
     }
 }
 

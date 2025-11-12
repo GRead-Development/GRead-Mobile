@@ -22,6 +22,7 @@ class ThemeManager: ObservableObject {
         secondaryColor: "#A29BFE",
         accentColor: "#FF6B9D",
         backgroundColor: "#FFFFFF",
+        isDarkTheme: false,
         unlockRequirement: nil
     )
 
@@ -32,7 +33,8 @@ class ThemeManager: ObservableObject {
         primaryColor: "#A29BFE",
         secondaryColor: "#74B9FF",
         accentColor: "#FF7675",
-        backgroundColor: "#1A1A2E",
+        backgroundColor: "#FFFFFF",
+        isDarkTheme: true,
         unlockRequirement: nil
     )
 
