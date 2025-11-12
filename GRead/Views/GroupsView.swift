@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 
 struct GroupsView: View {
+    @Environment(\.themeColors) var themeColors
     @State private var groups: [BPGroup] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -15,10 +16,10 @@ struct GroupsView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "person.3.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.gray.opacity(0.5))
+                            .foregroundColor(themeColors.textSecondary.opacity(0.5))
                         Text("No groups found")
                             .font(.title3)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
                 } else {
                     List(groups) { group in
@@ -80,7 +81,8 @@ struct GroupsResponse: Codable {
 
 struct GroupRowView: View {
     let group: BPGroup
-    
+    @Environment(\.themeColors) var themeColors
+
     var body: some View {
         HStack(spacing: 12) {
             AsyncImage(url: URL(string: group.avatarUrls?.thumb ?? "")) { image in
@@ -89,10 +91,10 @@ struct GroupRowView: View {
                     .aspectRatio(contentMode: .fill)
             } placeholder: {
                 Image(systemName: "person.3.fill")
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
             }
             .frame(width: 50, height: 50)
-            .background(Color.blue.opacity(0.1))
+            .background(themeColors.primary.opacity(0.1))
             .clipShape(Circle())
             
             VStack(alignment: .leading, spacing: 4) {
@@ -102,13 +104,13 @@ struct GroupRowView: View {
                 if let desc = group.description?.rendered, !desc.isEmpty {
                     Text(desc.stripHTML())
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                         .lineLimit(2)
                 }
-                
+
                 Text("\(group.totalMemberCount ?? 0) members")
                     .font(.caption)
-                    .foregroundColor(.blue)
+                    .foregroundColor(themeColors.primary)
             }
         }
         .padding(.vertical, 4)
@@ -117,6 +119,7 @@ struct GroupRowView: View {
 
 struct GroupDetailView: View {
     let group: BPGroup
+    @Environment(\.themeColors) var themeColors
     @State private var activities: [Activity] = []
     @State private var isLoading = false
     
@@ -131,14 +134,14 @@ struct GroupDetailView: View {
                     Text("Members")
                     Spacer()
                     Text("\(group.totalMemberCount ?? 0)")
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
-                
+
                 HStack {
                     Text("Status")
                     Spacer()
                     Text(group.status?.capitalized ?? "Public")
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
             }
             
@@ -147,7 +150,7 @@ struct GroupDetailView: View {
                     ProgressView()
                 } else if activities.isEmpty {
                     Text("No activity yet")
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 } else {
                     ForEach(activities) { activity in
                         VStack(alignment: .leading, spacing: 8) {
@@ -159,7 +162,7 @@ struct GroupDetailView: View {
                                 if let date = activity.dateRecorded {
                                     Text(date.toRelativeTime())
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                 }
                             }
                             if let content = activity.content, !content.isEmpty {

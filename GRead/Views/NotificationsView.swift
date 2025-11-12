@@ -2,6 +2,7 @@ import SwiftUI
 import Foundation
 
 struct NotificationsView: View {
+    @Environment(\.themeColors) var themeColors
     @State private var notifications: [Notification] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -15,9 +16,9 @@ struct NotificationsView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 60))
-                            .foregroundColor(.orange)
+                            .foregroundColor(themeColors.warning)
                         Text(error)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding()
                     }
@@ -25,13 +26,13 @@ struct NotificationsView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "bell.slash")
                             .font(.system(size: 60))
-                            .foregroundColor(.gray.opacity(0.5))
+                            .foregroundColor(themeColors.textSecondary.opacity(0.5))
                         Text("No notifications")
                             .font(.title3)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                         Text("You're all caught up!")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
                 } else {
                     List(notifications) { notification in
@@ -113,11 +114,12 @@ struct NotificationsView: View {
 
 struct NotificationRowView: View {
     let notification: Notification
-    
+    @Environment(\.themeColors) var themeColors
+
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(notification.isNew ?? false ? Color.blue : Color.clear)
+                .fill(notification.isNew ?? false ? themeColors.primary : Color.clear)
                 .frame(width: 10, height: 10)
             
             VStack(alignment: .leading, spacing: 4) {
@@ -135,18 +137,18 @@ struct NotificationRowView: View {
                     if let componentName = notification.componentName {
                         Text(componentName.capitalized)
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(themeColors.primary)
                     }
-                    
+
                     if let date = notification.dateNotified {
                         if notification.componentName != nil {
                             Text("•")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                         }
                         Text(date.toRelativeTime())
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
                 }
             }
@@ -156,7 +158,7 @@ struct NotificationRowView: View {
             if let href = notification.href, !href.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
             }
         }
         .padding(.vertical, 4)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LandingView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var showLoginRegister = false
 
     var body: some View {
@@ -14,7 +15,7 @@ struct LandingView: View {
 
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 80))
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeColors.primary)
 
                     VStack(spacing: 12) {
                         Text("GRead")
@@ -23,7 +24,7 @@ struct LandingView: View {
 
                         Text("It's just fun.")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
 
                     Spacer()
@@ -43,7 +44,7 @@ struct LandingView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.purple)
+                        .background(themeColors.textSecondary)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                     }
@@ -58,7 +59,7 @@ struct LandingView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(themeColors.primary)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                     }

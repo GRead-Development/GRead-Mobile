@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SplashScreenView: View {
+    @Environment(\.themeColors) var themeColors
     @State private var isActive = false
     @State private var scale: CGFloat = 0.5
     @State private var opacity: Double = 0
@@ -41,7 +42,7 @@ struct SplashScreenView: View {
                     // App Icon
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 100))
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeColors.primary)
                         .scaleEffect(scale)
                         .opacity(opacity)
 

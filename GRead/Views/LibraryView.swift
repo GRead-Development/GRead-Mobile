@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LibraryView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var libraryItems: [LibraryItem] = []
     @State private var isLoading = false
     @State private var showAddBook = false
@@ -14,7 +15,7 @@ struct LibraryView: View {
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
-        var items = libraryItems.map { item -> LibraryItem in
+        let items = libraryItems.map { item -> LibraryItem in
             var mutableItem = item
             if let totalPages = item.book?.totalPages, totalPages > 0, item.currentPage >= totalPages {
                 mutableItem.status = "completed"
@@ -44,15 +45,15 @@ struct LibraryView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "books.vertical.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
 
                         Text("Your Library is Empty")
                             .font(.headline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textPrimary)
 
                         Text("Add books to get started tracking your reading")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
 
@@ -60,7 +61,7 @@ struct LibraryView: View {
                             Label("Add First Book", systemImage: "plus.circle.fill")
                                 .padding()
                                 .frame(maxWidth: .infinity)
-                                .background(Color.blue)
+                                .background(themeColors.primary)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                                 .padding()
@@ -87,7 +88,7 @@ struct LibraryView: View {
                             }
                         }
                         .padding(.vertical, 12)
-                        .background(Color(.systemGray6))
+                        .background(themeColors.cardBackground)
 
                         // Library Items List
                         ScrollView {
@@ -212,6 +213,7 @@ struct LibraryItemCard: View {
     let libraryItem: LibraryItem
     let onDelete: () -> Void
     let onProgressUpdate: (Int) -> Void
+    @Environment(\.themeColors) var themeColors
 
     @State private var showProgressEditor = false
     @State private var newPageCount = 0
@@ -232,7 +234,7 @@ struct LibraryItemCard: View {
                     if let author = libraryItem.book?.author {
                         Text(author)
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
 
                     HStack(spacing: 8) {
@@ -245,7 +247,7 @@ struct LibraryItemCard: View {
 
                     Text("\(libraryItem.currentPage) / \(libraryItem.book?.totalPages ?? 0) pages")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
 
                 Spacer()
@@ -256,28 +258,29 @@ struct LibraryItemCard: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
             }
 
             // Progress Bar
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                     .frame(maxWidth: .infinity, maxHeight: 8)
 
                 Capsule()
-                    .fill(Color.blue)
+                    .fill(themeColors.primary)
                     .frame(maxWidth: .infinity, maxHeight: 8)
                     .scaleEffect(x: min(progressPercentage / 100.0, 1.0), anchor: .leading)
             }
 
             Text("\(Int(progressPercentage))% complete")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(themeColors.textSecondary)
         }
         .padding()
-        .border(Color.gray, width: 1)
+        .background(themeColors.cardBackground)
+        .border(themeColors.border, width: 1)
         .cornerRadius(12)
         .shadow(radius: 2)
         .contentShape(Rectangle())
@@ -304,6 +307,7 @@ struct ProgressEditorSheet: View {
     let currentPage: Int
     let totalPages: Int
     let onSave: (Int) -> Void
+    @Environment(\.themeColors) var themeColors
 
     @State private var pageInput = ""
 
@@ -316,7 +320,7 @@ struct ProgressEditorSheet: View {
 
                     Text("\(currentPage) / \(totalPages) pages")
                         .font(.title3)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -347,11 +351,11 @@ struct ProgressEditorSheet: View {
                     HStack {
                         Text("0p")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                         Spacer()
                         Text("\(totalPages)p")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
                 }
 
@@ -365,7 +369,7 @@ struct ProgressEditorSheet: View {
                     Text("Save Progress")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(themeColors.primary)
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
@@ -391,6 +395,7 @@ struct ProgressEditorSheet: View {
 // MARK: - Add Book Sheet
 struct AddBookSheet: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @Binding var isPresented: Bool
     let onBookAdded: () -> Void
 
@@ -419,13 +424,13 @@ struct AddBookSheet: View {
                                 if let author = book.author {
                                     Text(author)
                                         .font(.subheadline)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                 }
-                                
+
                                 if let description = book.description {
                                     Text(description)
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                         .lineLimit(2)
                                 }
                             }
@@ -439,30 +444,30 @@ struct AddBookSheet: View {
                         VStack(spacing: 16) {
                             Image(systemName: "books.vertical.fill")
                                 .font(.system(size: 50))
-                                .foregroundColor(.gray)
-                            
+                                .foregroundColor(themeColors.textSecondary)
+
                             Text("No books found")
                                 .font(.headline)
-                                .foregroundColor(.gray)
-                            
+                                .foregroundColor(themeColors.textPrimary)
+
                             Text("Try searching with different keywords")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                         }
                         .frame(maxHeight: .infinity, alignment: .center)
                     } else {
                         VStack(spacing: 16) {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 50))
-                                .foregroundColor(.gray)
-                            
+                                .foregroundColor(themeColors.textSecondary)
+
                             Text("Search for books")
                                 .font(.headline)
-                                .foregroundColor(.gray)
-                            
+                                .foregroundColor(themeColors.textPrimary)
+
                             Text("Enter a book title or author name")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                         }
                         .frame(maxHeight: .infinity, alignment: .center)
                     }
@@ -541,11 +546,12 @@ struct AddBookSheet: View {
 // MARK: - Helper Views
 struct SearchBar: View {
     @Binding var text: String
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
+                .foregroundColor(themeColors.textSecondary)
 
             TextField("Search...", text: $text)
                 .textFieldStyle(.roundedBorder)
@@ -553,7 +559,7 @@ struct SearchBar: View {
             if !text.isEmpty {
                 Button(action: { text = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
             }
         }
@@ -565,6 +571,7 @@ struct FilterButton: View {
     let label: String
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         Button(action: action) {
@@ -572,8 +579,8 @@ struct FilterButton: View {
                 .font(.caption)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isSelected ? Color.blue : Color(.systemGray6))
-                .foregroundColor(isSelected ? .white : .primary)
+                .background(isSelected ? themeColors.primary : themeColors.cardBackground)
+                .foregroundColor(isSelected ? .white : themeColors.textPrimary)
                 .cornerRadius(16)
         }
     }
@@ -609,6 +616,7 @@ struct StatusBadge: View {
 // MARK: - ISBN Import Sheet
 struct ISBNImportSheet: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @Binding var isPresented: Bool
     let onBookAdded: () -> Void
 
@@ -644,7 +652,7 @@ struct ISBNImportSheet: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
+                            .background(themeColors.primary)
                             .foregroundColor(.white)
                             .cornerRadius(8)
                             .font(.headline)
@@ -657,7 +665,7 @@ struct ISBNImportSheet: View {
                 if let error = errorMessage {
                     Text(error)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(themeColors.error)
                         .padding()
                 }
 
@@ -670,13 +678,13 @@ struct ISBNImportSheet: View {
                             if let author = book.author {
                                 Text(author)
                                     .font(.subheadline)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
 
                             if let isbn = book.isbn {
                                 Text("ISBN: \(isbn)")
                                     .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                         }
                         .contentShape(Rectangle())
@@ -689,15 +697,15 @@ struct ISBNImportSheet: View {
                     VStack(spacing: 16) {
                         Image(systemName: "books.vertical.fill")
                             .font(.system(size: 50))
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
 
                         Text("No books found")
                             .font(.headline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textPrimary)
 
                         Text("Try a different ISBN")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
                 } else {

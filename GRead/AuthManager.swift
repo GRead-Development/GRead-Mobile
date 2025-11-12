@@ -17,7 +17,9 @@ class AuthManager: ObservableObject {
     
     func login(username: String, password: String) async throws {
         // JWT Authentication endpoint
-        let url = URL(string: "https://gread.fun/wp-json/jwt-auth/v1/token")!
+        guard let url = URL(string: "https://gread.fun/wp-json/jwt-auth/v1/token") else {
+            throw AuthError.invalidResponse
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -36,15 +38,15 @@ class AuthManager: ObservableObject {
                 throw AuthError.invalidResponse
             }
             
-            // Print response for debugging
+            // Log response for debugging
             if let responseString = String(data: data, encoding: .utf8) {
-                print("JWT Response: \(responseString)")
+                Logger.debug("JWT Response: \(responseString)")
             }
 
             // First, check if response is an error response (has a code field)
             if let errorResponse = try? JSONDecoder().decode(JWTErrorResponse.self, from: data),
                errorResponse.code != nil {
-                print("JWT Error detected: \(errorResponse.message ?? "Unknown error")")
+                Logger.warning("JWT Error detected: \(errorResponse.message ?? "Unknown error")")
                 // Show user-friendly message for all registration/account issues
                 throw AuthError.registrationFailed("If you are a new user and your username is unique, check your email and verify your account.")
             }
@@ -53,14 +55,14 @@ class AuthManager: ObservableObject {
                 // Try to parse error message from server
                 if let errorResponse = try? JSONDecoder().decode(JWTErrorResponse.self, from: data),
                    let message = errorResponse.message {
-                    print("JWT Error: \(message)")
+                    Logger.warning("JWT Error: \(message)")
                     throw AuthError.registrationFailed("If you are a new user and your username is unique, check your email and verify your account.")
                 }
                 throw AuthError.unauthorized
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                print("JWT Auth failed with status: \(httpResponse.statusCode)")
+                Logger.error("JWT Auth failed with status: \(httpResponse.statusCode)")
                 throw AuthError.httpError(httpResponse.statusCode)
             }
 
@@ -81,14 +83,16 @@ class AuthManager: ObservableObject {
         } catch let error as AuthError {
             throw error
         } catch {
-            print("Login error: \(error)")
+            Logger.error("Login error: \(error)")
             throw AuthError.networkError
         }
     }
     
     func register(username: String, email: String, password: String) async throws {
         // BuddyPress signup endpoint
-        let url = URL(string: "https://gread.fun/wp-json/buddypress/v1/signup")!
+        guard let url = URL(string: "https://gread.fun/wp-json/buddypress/v1/signup") else {
+            throw AuthError.invalidResponse
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -114,9 +118,9 @@ class AuthManager: ObservableObject {
                 throw AuthError.invalidResponse
             }
 
-            // Print response for debugging
+            // Log response for debugging
             if let responseString = String(data: data, encoding: .utf8) {
-                print("Registration Response: \(responseString)")
+                Logger.debug("Registration Response: \(responseString)")
             }
 
             if httpResponse.statusCode == 400 || httpResponse.statusCode == 409 {
@@ -154,7 +158,7 @@ class AuthManager: ObservableObject {
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                print("Registration failed with status: \(httpResponse.statusCode)")
+                Logger.error("Registration failed with status: \(httpResponse.statusCode)")
                 throw AuthError.registrationFailed("Registration failed. Please try again.")
             }
 
@@ -173,7 +177,7 @@ class AuthManager: ObservableObject {
         } catch let error as AuthError {
             throw error
         } catch {
-            print("Registration error: \(error)")
+            Logger.error("Registration error: \(error)")
             throw AuthError.networkError
         }
     }

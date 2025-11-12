@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ActivityFeedView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var activities: [Activity] = []
     @State private var organizedActivities: [Activity] = []
     @State private var isLoading = false
@@ -44,13 +45,13 @@ struct ActivityFeedView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "flame.fill")
                                 .font(.system(size: 60))
-                                .foregroundColor(.gray.opacity(0.5))
+                                .foregroundColor(themeColors.textSecondary.opacity(0.5))
                             Text("No activity yet")
                                 .font(.title3)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                             Text("Be the first to post something!")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                         }
                     } else {
                         List {
@@ -156,6 +157,7 @@ struct ActivityFeedView: View {
                 }
             }
             .id(1)  // Stable ID to prevent NavigationView from rebuilding when sheet state changes
+            .navigationViewStyle(.stack)  // Force stack layout on iPad for full-screen display
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -188,6 +190,9 @@ struct ActivityFeedView: View {
                             await loadModerationLists()
                             await loadActivities()
                         }
+                    },
+                    onUserTap: { userId in
+                        activeSheet = .userProfile(userId: userId)
                     }
                 )
             }
@@ -219,7 +224,6 @@ struct ActivityFeedView: View {
                     activities = response
                 } else {
                     // Append new activities, but deduplicate in case of overlaps
-                    let newActivityIds = Set(response.map { $0.id })
                     let existingIds = Set(activities.map { $0.id })
                     let uniqueNewActivities = response.filter { !existingIds.contains($0.id) }
                     activities.append(contentsOf: uniqueNewActivities)
@@ -387,6 +391,7 @@ struct ThreadedActivityView: View {
     let onCommentsTap: () -> Void
     let onReport: () -> Void
     let onDelete: (Activity) -> Void
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -408,9 +413,14 @@ struct ThreadedActivityView: View {
                 }
             }
 
-            // Comments (children) with indentation
+            // Comments (children) with indentation - sorted by date (oldest first)
             if let children = activity.children, !children.isEmpty {
-                ForEach(children) { child in
+                let sortedChildren = children.sorted { child1, child2 in
+                    let date1 = child1.dateRecorded ?? ""
+                    let date2 = child2.dateRecorded ?? ""
+                    return date1 < date2
+                }
+                ForEach(sortedChildren) { child in
                     CommentThreadView(
                         comment: child,
                         onUserTap: onUserTap,
@@ -432,6 +442,7 @@ struct CommentThreadView: View {
     let onReport: () -> Void
     let onDelete: (Activity) -> Void
     let indentLevel: Int
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -487,24 +498,62 @@ struct ActivityRowView: View {
     let onCommentsTap: () -> Void
     let onReport: () -> Void
     let indentLevel: Int
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.blue.opacity(0.2))
-                    .frame(width: 40, height: 40)
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.blue)
-                            .font(.system(size: 18))
+                // Avatar with fallback
+                if let avatarUrl = activity.userAvatar, let url = URL(string: avatarUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .empty:
+                            Circle()
+                                .fill(themeColors.primary.opacity(0.2))
+                                .overlay {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                }
+                        case .failure:
+                            Circle()
+                                .fill(themeColors.primary.opacity(0.2))
+                                .overlay {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(themeColors.primary)
+                                        .font(.system(size: 16))
+                                }
+                        @unknown default:
+                            Circle()
+                                .fill(themeColors.primary.opacity(0.2))
+                        }
                     }
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
                     .onTapGesture {
                         if let userId = activity.userId {
                             onUserTap(userId)
                         }
                     }
-                
+                } else {
+                    Circle()
+                        .fill(themeColors.primary.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .foregroundColor(themeColors.primary)
+                                .font(.system(size: 18))
+                        }
+                        .onTapGesture {
+                            if let userId = activity.userId {
+                                onUserTap(userId)
+                            }
+                        }
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
                     Button(action: {
                         if let userId = activity.userId {
@@ -521,17 +570,17 @@ struct ActivityRowView: View {
                         if let type = activity.type {
                             Text(type.replacingOccurrences(of: "_", with: " ").capitalized)
                                 .font(.caption)
-                                .foregroundColor(.blue)
+                                .foregroundColor(themeColors.primary)
                         }
-                        
+
                         if let date = activity.dateRecorded {
                             Text("•")
                                 .font(.caption)
-                                .foregroundColor(.gray)
-                            
+                                .foregroundColor(themeColors.textSecondary)
+
                             Text(date.toRelativeTime())
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                         }
                     }
                 }
@@ -557,7 +606,7 @@ struct ActivityRowView: View {
                             Text("Comment")
                         }
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                     }
 
                     Spacer()
@@ -571,10 +620,13 @@ struct ActivityRowView: View {
 
 struct CommentView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
     let activity: Activity
     let onPost: () -> Void
+    let onUserTap: (Int) -> Void
     @State private var commentText = ""
     @State private var isPosting = false
+    @State private var commentError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -599,24 +651,45 @@ struct CommentView: View {
                             .font(.body)
                             .fontWeight(.medium)
                             .padding()
-                            .background(Color.gray.opacity(0.1))
+                            .background(themeColors.textSecondary.opacity(0.1))
                             .cornerRadius(8)
                     }
 
                     Divider()
 
-                    // Display existing comments
+                    // Error message
+                    if let error = commentError {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(themeColors.error)
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(themeColors.error)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(themeColors.error.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+
+                    // Display existing comments - sorted by date (oldest first)
                     if let children = activity.children, !children.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            ForEach(children) { comment in
-                                CommentItemView(comment: comment)
+                            let sortedComments = children.sorted { c1, c2 in
+                                let date1 = c1.dateRecorded ?? ""
+                                let date2 = c2.dateRecorded ?? ""
+                                return date1 < date2
+                            }
+                            ForEach(sortedComments) { comment in
+                                CommentItemView(comment: comment, onUserTap: onUserTap)
                             }
                         }
                         .padding(.horizontal)
                     } else {
                         Text("No comments yet")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .padding(.horizontal)
                     }
                 }
@@ -628,8 +701,8 @@ struct CommentView: View {
             HStack(spacing: 12) {
                 TextField("Add a comment...", text: $commentText, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .padding(8)
-                    .background(Color.gray.opacity(0.1))
+                    .padding(12)
+                    .background(themeColors.textSecondary.opacity(0.1))
                     .cornerRadius(20)
                     .lineLimit(1...5)
 
@@ -638,12 +711,14 @@ struct CommentView: View {
                 } label: {
                     if isPosting {
                         ProgressView()
+                            .scaleEffect(0.9)
                     } else {
                         Image(systemName: "paperplane.fill")
-                            .foregroundColor(commentText.isEmpty ? .gray : .blue)
+                            .foregroundColor(commentText.isEmpty ? themeColors.textSecondary : themeColors.primary)
                     }
                 }
                 .disabled(commentText.isEmpty || isPosting)
+                .animation(.easeInOut(duration: 0.2), value: isPosting)
             }
             .padding()
         }
@@ -651,6 +726,7 @@ struct CommentView: View {
     
     private func postComment() {
         isPosting = true
+        commentError = nil
         Task {
             do {
                 let body: [String: Any] = [
@@ -674,6 +750,7 @@ struct CommentView: View {
             } catch {
                 await MainActor.run {
                     isPosting = false
+                    commentError = "Failed to post comment. Please try again."
                 }
             }
         }
@@ -681,29 +758,80 @@ struct CommentView: View {
 }
 
 struct CommentItemView: View {
+    @Environment(\.themeColors) var themeColors
     let comment: Activity
+    let onUserTap: (Int) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.blue.opacity(0.15))
-                    .frame(width: 32, height: 32)
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.blue)
-                            .font(.system(size: 14))
+                // Avatar with fallback
+                if let avatarUrl = comment.userAvatar, let url = URL(string: avatarUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .empty:
+                            Circle()
+                                .fill(themeColors.primary.opacity(0.15))
+                                .overlay {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                }
+                        case .failure:
+                            Circle()
+                                .fill(themeColors.primary.opacity(0.15))
+                                .overlay {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(themeColors.primary)
+                                        .font(.system(size: 12))
+                                }
+                        @unknown default:
+                            Circle()
+                                .fill(themeColors.primary.opacity(0.15))
+                        }
                     }
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+                    .onTapGesture {
+                        if let userId = comment.userId {
+                            onUserTap(userId)
+                        }
+                    }
+                } else {
+                    Circle()
+                        .fill(themeColors.primary.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .foregroundColor(themeColors.primary)
+                                .font(.system(size: 14))
+                        }
+                        .onTapGesture {
+                            if let userId = comment.userId {
+                                onUserTap(userId)
+                            }
+                        }
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(comment.bestUserName)
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                    Button(action: {
+                        if let userId = comment.userId {
+                            onUserTap(userId)
+                        }
+                    }) {
+                        Text(comment.bestUserName)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
 
                     if let date = comment.dateRecorded {
                         Text(date.toRelativeTime())
                             .font(.caption2)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                     }
                 }
 
@@ -723,20 +851,21 @@ struct CommentItemView: View {
                         .padding(.vertical, 4)
 
                     ForEach(children) { child in
-                        CommentItemView(comment: child)
+                        CommentItemView(comment: child, onUserTap: onUserTap)
                             .padding(.leading, 8)
                     }
                 }
             }
         }
         .padding(8)
-        .background(Color.gray.opacity(0.05))
-        .cornerRadius(6)
+        .background(themeColors.textSecondary.opacity(0.05))
+        .cornerRadius(12)
     }
 }
 
 struct NewActivityView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
     @State private var content = ""
     @State private var isPosting = false
     @State private var errorMessage: String?
@@ -772,17 +901,17 @@ struct NewActivityView: View {
             TextEditor(text: $content)
                 .frame(minHeight: 150)
                 .padding(8)
-                .background(Color.gray.opacity(0.1))
+                .background(themeColors.textSecondary.opacity(0.1))
                 .cornerRadius(8)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(themeColors.textSecondary.opacity(0.3), lineWidth: 1)
                 )
 
             if let error = errorMessage {
                 Text(error)
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(themeColors.error)
             }
 
             Spacer()
@@ -826,6 +955,7 @@ struct UserProfileView: View {
     let userId: Int
     let onModerationTap: (String) -> Void
     @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
     @EnvironmentObject var authManager: AuthManager
     @State private var user: User?
     @State private var stats: UserStats?
@@ -863,7 +993,7 @@ struct UserProfileView: View {
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
@@ -874,7 +1004,7 @@ struct UserProfileView: View {
 
                             if let username = user.userLogin {
                                 Text("@\(username)")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                         }
                         .padding(.top, 20)
@@ -893,13 +1023,13 @@ struct UserProfileView: View {
                                         label: "Books Completed",
                                         value: "\(stats.booksCompleted)",
                                         icon: "checkmark.circle.fill",
-                                        color: .green
+                                        color: themeColors.success
                                     )
                                     StatCard(
                                         label: "Pages Read",
                                         value: "\(stats.pagesRead)",
                                         icon: "book.fill",
-                                        color: .blue
+                                        color: themeColors.primary
                                     )
                                 }
                             }
@@ -917,8 +1047,8 @@ struct UserProfileView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.red.opacity(0.1))
-                                .foregroundColor(.red)
+                                .background(themeColors.error.opacity(0.1))
+                                .foregroundColor(themeColors.error)
                                 .cornerRadius(8)
                             }
                             .padding(.vertical, 8)
@@ -930,7 +1060,7 @@ struct UserProfileView: View {
                 }
             } else {
                 Text("User not found")
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
             }
         }
         .task {

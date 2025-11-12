@@ -13,6 +13,7 @@ struct StatsView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         Group {
@@ -25,12 +26,12 @@ struct StatsView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.largeTitle)
-                        .foregroundColor(.orange)
+                        .foregroundColor(themeColors.warning)
                     Text("Failed to load stats")
                         .font(.headline)
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                     Button("Retry") {
                         loadStats()
                     }
@@ -41,7 +42,7 @@ struct StatsView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "chart.bar.fill")
                         .font(.largeTitle)
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeColors.primary)
                     Text("No stats available")
                         .font(.headline)
                     Button("Load Stats") {
@@ -68,7 +69,7 @@ struct StatsView: View {
                             image.resizable()
                         } placeholder: {
                             Image(systemName: "person.circle.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                         }
                         .frame(width: 100, height: 100)
                         .clipShape(Circle())
@@ -83,7 +84,7 @@ struct StatsView: View {
                                     label: "Points",
                                     value: "\(stats.points)",
                                     icon: "star.fill",
-                                    color: .yellow
+                                    color: themeColors.warning
                                 )
                             }
                             .padding(.top, 8)
@@ -91,7 +92,7 @@ struct StatsView: View {
                     }
                     .padding(.vertical, 20)
                     .padding(.horizontal)
-                    .background(Color(.systemGray6))
+                    .background(themeColors.cardBackground)
 
                     Divider()
 
@@ -103,13 +104,13 @@ struct StatsView: View {
                                     label: "Books Completed",
                                     value: "\(stats.booksCompleted)",
                                     icon: "checkmark.circle.fill",
-                                    color: .green
+                                    color: themeColors.success
                                 )
                                 StatCard(
                                     label: "Pages Read",
                                     value: "\(stats.pagesRead)",
                                     icon: "book.fill",
-                                    color: .blue
+                                    color: themeColors.primary
                                 )
                             }
 
@@ -118,13 +119,13 @@ struct StatsView: View {
                                     label: "Books Added",
                                     value: "\(stats.booksAdded)",
                                     icon: "plus.circle.fill",
-                                    color: .purple
+                                    color: themeColors.accent
                                 )
                                 StatCard(
                                     label: "Approved Reports",
                                     value: "\(stats.approvedReports)",
                                     icon: "flag.fill",
-                                    color: .red
+                                    color: themeColors.error
                                 )
                             }
                         }
@@ -136,7 +137,7 @@ struct StatsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "lock.open.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(themeColors.warning)
                             Text("Available Unlocks")
                                 .font(.headline)
                         }
@@ -155,7 +156,7 @@ struct StatsView: View {
                         }
                     }
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(themeColors.cardBackground)
                     .cornerRadius(12)
                     .padding()
 
@@ -188,6 +189,7 @@ struct StatsView: View {
 // MARK: - Components
 
 struct StatCard: View {
+    @Environment(\.themeColors) var themeColors
     let label: String
     let value: String
     let icon: String
@@ -205,17 +207,18 @@ struct StatCard: View {
 
             Text(label)
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(themeColors.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.systemGray6))
+        .background(themeColors.cardBackground)
         .cornerRadius(12)
     }
 }
 
 struct StatBadge: View {
+    @Environment(\.themeColors) var themeColors
     let label: String
     let value: String
     let icon: String
@@ -229,7 +232,7 @@ struct StatBadge: View {
             VStack(spacing: 2) {
                 Text(label)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
                 Text(value)
                     .font(.headline)
                     .fontWeight(.semibold)
@@ -237,13 +240,14 @@ struct StatBadge: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .background(themeColors.background)
         .cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.systemGray3), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(themeColors.border, lineWidth: 1))
     }
 }
 
 struct UnlockProgressRow: View {
+    @Environment(\.themeColors) var themeColors
     let title: String
     let icon: String
     let stats: UserStats
@@ -279,7 +283,7 @@ struct UnlockProgressRow: View {
         VStack(spacing: 8) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .foregroundColor(.blue)
+                    .foregroundColor(themeColors.primary)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -288,25 +292,25 @@ struct UnlockProgressRow: View {
                         .fontWeight(.semibold)
                     Text("\(currentValue) / \(requirement.value) \(requirement.label)")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
 
                 Spacer()
 
                 if isUnlocked {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(themeColors.success)
                         .font(.title3)
                 }
             }
 
             // Progress bar
             ProgressView(value: min(progress, 1.0))
-                .tint(isUnlocked ? .green : .blue)
+                .tint(isUnlocked ? themeColors.success : themeColors.primary)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(isUnlocked ? Color.green.opacity(0.1) : Color.white)
+        .background(isUnlocked ? themeColors.success.opacity(0.1) : .white)
         .cornerRadius(8)
     }
 }

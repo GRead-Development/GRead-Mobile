@@ -1,5 +1,6 @@
 import Foundation
 
+// MARK: - API Manager for handling all API requests to the GRead backend
 class APIManager {
     static let shared = APIManager()
     private let baseURL = "https://gread.fun/wp-json/buddypress/v1"
@@ -37,26 +38,30 @@ class APIManager {
         }
         
         // Enhanced response logging
-        print("=== API Response Debug ===")
-        print("URL: \(url)")
-        print("Status: \(httpResponse.statusCode)")
+        Logger.debug("=== API Response Debug ===")
+        Logger.debug("URL: \(url)")
+        Logger.debug("Status: \(httpResponse.statusCode)")
         if let responseString = String(data: data, encoding: .utf8) {
-            print("Raw Response: \(responseString.prefix(500))") // First 500 chars
+            Logger.debug("Raw Response: \(responseString.prefix(500))") // First 500 chars
         }
-        print("========================")
-        
+        Logger.debug("========================")
+
         guard (200...299).contains(httpResponse.statusCode) else {
-            print("❌ API Error: Status \(httpResponse.statusCode)")
+            Logger.error("API Error: Status \(httpResponse.statusCode)")
             throw APIError.httpError(httpResponse.statusCode)
         }
         
         // Check for empty or "false" response
         if let responseString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
             if responseString == "false" || responseString == "[]" || responseString.isEmpty {
-                print("⚠️ Empty response detected")
-                // For array types, return empty array
-                if T.self is [Any].Type {
-                    return [] as! T
+                Logger.warning("Empty response detected")
+                // For empty array response, try to decode it as empty array
+                if responseString == "[]" {
+                    let decoder = JSONDecoder()
+                    decoder.keyDecodingStrategy = .convertFromSnakeCase
+                    if let decodedArray = try? decoder.decode(T.self, from: "[]".data(using: .utf8)!) {
+                        return decodedArray
+                    }
                 }
                 throw APIError.emptyResponse
             }
@@ -94,26 +99,28 @@ class APIManager {
         
         do {
             let decoded = try decoder.decode(T.self, from: data)
-            print("✅ Successfully decoded response")
+            Logger.debug("Successfully decoded response")
             return decoded
         } catch {
-            print("❌ Decoding error for \(endpoint):")
-            print("   Error: \(error)")
-            
+            Logger.error("Decoding error for \(endpoint): \(error)")
+
             // Try to print the JSON structure for debugging
             if let json = try? JSONSerialization.jsonObject(with: data),
                let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
                let prettyString = String(data: prettyData, encoding: .utf8) {
-                print("   JSON structure:")
-                print(prettyString.prefix(1000))
+                Logger.debug("JSON structure: \(prettyString.prefix(1000))")
             }
-            
-            // If decoding fails and we're expecting an array, try returning empty
-            if T.self is [Any].Type {
-                print("   Returning empty array as fallback")
-                return [] as! T
+
+            // If decoding fails and the response was "[]", try to decode as empty array
+            if let responseString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+               responseString == "[]" {
+                Logger.debug("Attempting to decode empty array")
+                let emptyDecoder = JSONDecoder()
+                if let decodedArray = try? emptyDecoder.decode(T.self, from: "[]".data(using: .utf8)!) {
+                    return decodedArray
+                }
             }
-            
+
             throw APIError.decodingError(error)
         }
     }
@@ -147,13 +154,13 @@ class APIManager {
             throw APIError.invalidResponse
         }
 
-        print("=== Custom API Response ===")
-        print("URL: \(url)")
-        print("Status: \(httpResponse.statusCode)")
+        Logger.debug("=== Custom API Response ===")
+        Logger.debug("URL: \(url)")
+        Logger.debug("Status: \(httpResponse.statusCode)")
         if let responseString = String(data: data, encoding: .utf8) {
-            print("Response: \(responseString)")
+            Logger.debug("Response: \(responseString)")
         }
-        print("=========================")
+        Logger.debug("=========================")
 
         guard (200...299).contains(httpResponse.statusCode) else {
             throw APIError.httpError(httpResponse.statusCode)
@@ -162,18 +169,20 @@ class APIManager {
         // Check for empty response
         if let responseString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
             if responseString == "false" || responseString == "[]" || responseString.isEmpty {
-                // For array types, return empty array
-                if T.self is [Any].Type {
-                    return [] as! T
+                // For empty array response, try to decode it as empty array
+                if responseString == "[]" {
+                    let decoder = JSONDecoder()
+                    if let decodedArray = try? decoder.decode(T.self, from: "[]".data(using: .utf8)!) {
+                        return decodedArray
+                    }
                 }
                 throw APIError.emptyResponse
             }
         }
 
-        // Print raw JSON for debugging
+        // Log raw JSON for debugging
         if let responseString = String(data: data, encoding: .utf8) {
-            print("📦 Raw API Response:")
-            print(responseString.prefix(2000))
+            Logger.debug("Raw API Response: \(responseString.prefix(2000))")
         }
 
         let decoder = JSONDecoder()
@@ -183,15 +192,13 @@ class APIManager {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            print("❌ Decoding error for \(endpoint):")
-            print("   Error: \(error)")
+            Logger.error("Decoding error for \(endpoint): \(error)")
 
-            // Try to print the JSON structure for debugging
+            // Try to log the JSON structure for debugging
             if let json = try? JSONSerialization.jsonObject(with: data),
                let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
                let prettyString = String(data: prettyData, encoding: .utf8) {
-                print("   JSON structure:")
-                print(prettyString)
+                Logger.debug("JSON structure: \(prettyString)")
             }
 
             throw APIError.decodingError(error)

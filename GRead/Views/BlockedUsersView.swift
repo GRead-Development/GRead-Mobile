@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct BlockedUsersView: View {
+    @Environment(\.themeColors) var themeColors
     @State private var blockedUsers: [User] = []
     @State private var blockedUserIds: [Int] = []
     @State private var isLoading = true
@@ -22,16 +23,16 @@ struct BlockedUsersView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 60))
-                        .foregroundColor(.green)
+                        .foregroundColor(themeColors.success)
                     Text("No blocked users")
                         .font(.title3)
                         .fontWeight(.semibold)
                     Text("You haven't blocked anyone yet")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemBackground))
+                .background(themeColors.background)
             } else {
                 List {
                     ForEach(blockedUsers) { user in
@@ -44,7 +45,7 @@ struct BlockedUsersView: View {
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                             .frame(width: 50, height: 50)
                             .clipShape(Circle())
@@ -58,7 +59,7 @@ struct BlockedUsersView: View {
                                 if let username = user.userLogin {
                                     Text("@\(username)")
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                         .lineLimit(1)
                                 }
                             }
@@ -70,10 +71,10 @@ struct BlockedUsersView: View {
                                 Text("Unblock")
                                     .font(.caption)
                                     .fontWeight(.semibold)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(themeColors.error)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(Color.red.opacity(0.1))
+                                    .background(themeColors.error.opacity(0.1))
                                     .cornerRadius(6)
                             }
                         }

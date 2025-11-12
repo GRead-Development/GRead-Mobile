@@ -15,6 +15,7 @@ struct Activity: Codable, Identifiable {
     let userLogin: String?
     let displayName: String?
     let userFullname: String?
+    let userAvatar: String?
     let parent: Int?
     var children: [Activity]?
 
@@ -23,6 +24,7 @@ struct Activity: Codable, Identifiable {
         case userId, primaryLink, itemId, secondaryItemId
         case dateRecorded, hideSitewide, isSpam
         case userNicename, userLogin, displayName, userFullname
+        case userAvatar = "user_avatar"
         case parent, children
     }
     
@@ -72,6 +74,7 @@ struct Activity: Codable, Identifiable {
         userLogin = try? container.decode(String.self, forKey: .userLogin)
         displayName = try? container.decode(String.self, forKey: .displayName)
         userFullname = try? container.decode(String.self, forKey: .userFullname)
+        userAvatar = try? container.decode(String.self, forKey: .userAvatar)
 
         // Parent and children for threading
         parent = try? container.decode(Int.self, forKey: .parent)

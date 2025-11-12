@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import UserNotifications
 
 class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
@@ -11,16 +12,27 @@ class ThemeManager: ObservableObject {
 
     @Published var allThemes: [AppTheme] = []
 
-    // MARK: - Default Theme (always available)
+    // MARK: - Built-in Themes (always available)
 
     static let defaultTheme = AppTheme(
         id: "default",
-        name: "Default",
-        description: "The standard app theme",
-        primaryColor: "#007AFF",
-        secondaryColor: "#5AC8FA",
-        accentColor: "#34C759",
+        name: "Light",
+        description: "Fresh and bright light theme",
+        primaryColor: "#6C5CE7",
+        secondaryColor: "#A29BFE",
+        accentColor: "#FF6B9D",
         backgroundColor: "#FFFFFF",
+        unlockRequirement: nil
+    )
+
+    static let darkTheme = AppTheme(
+        id: "dark",
+        name: "Dark",
+        description: "Easy on the eyes dark theme",
+        primaryColor: "#A29BFE",
+        secondaryColor: "#74B9FF",
+        accentColor: "#FF7675",
+        backgroundColor: "#1A1A2E",
         unlockRequirement: nil
     )
 
@@ -43,7 +55,7 @@ class ThemeManager: ObservableObject {
     // MARK: - Theme Loading
 
     private func loadAllThemes() {
-        var themes = [ThemeManager.defaultTheme]
+        var themes = [ThemeManager.defaultTheme, ThemeManager.darkTheme]
 
         // Load themes from app bundle
         let bundleThemes = ThemeLoader.shared.loadThemesFromBundle()
@@ -54,7 +66,7 @@ class ThemeManager: ObservableObject {
         themes.append(contentsOf: customThemes)
 
         self.allThemes = themes
-        print("📚 Loaded \(themes.count) total themes")
+        Logger.debug("Loaded \(themes.count) total themes")
     }
 
     /// Reload themes (useful after user adds new theme files)

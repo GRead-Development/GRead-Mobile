@@ -75,6 +75,7 @@ struct ThemeSelectionView: View {
 
 struct ThemeSelectionRow: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
     let theme: AppTheme
 
     var isActive: Bool {
@@ -113,14 +114,14 @@ struct ThemeSelectionRow: View {
                     if #available(iOS 17.0, *) {
                         Circle()
                             .fill(theme.background)
-                            .stroke(Color.gray, lineWidth: 0.5)
+                            .stroke(themeColors.textSecondary, lineWidth: 0.5)
                             .frame(width: 12, height: 12)
                     } else {
                         // Fallback on earlier versions
                     }
                 }
                 .padding(8)
-                .background(Color(.systemGray6))
+                .background(themeColors.cardBackground)
                 .cornerRadius(6)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -129,23 +130,23 @@ struct ThemeSelectionRow: View {
                         .fontWeight(.semibold)
                     Text(theme.description)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
 
                 Spacer()
 
                 if isActive {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeColors.primary)
                         .font(.title3)
                 }
             }
             .padding(12)
-            .background(isActive ? Color.blue.opacity(0.1) : Color(.systemGray6))
+            .background(isActive ? themeColors.primary.opacity(0.1) : themeColors.cardBackground)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isActive ? Color.blue : Color.clear, lineWidth: 2)
+                    .stroke(isActive ? themeColors.primary : Color.clear, lineWidth: 2)
             )
         }
         .foregroundColor(.primary)
@@ -155,6 +156,7 @@ struct ThemeSelectionRow: View {
 // MARK: - Locked Theme Selection Row
 
 struct LockedThemeSelectionRow: View {
+    @Environment(\.themeColors) var themeColors
     let theme: AppTheme
 
     var body: some View {
@@ -162,20 +164,20 @@ struct LockedThemeSelectionRow: View {
             // Color preview (greyed out)
             HStack(spacing: 3) {
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                     .frame(width: 12, height: 12)
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                     .frame(width: 12, height: 12)
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                     .frame(width: 12, height: 12)
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                     .frame(width: 12, height: 12)
             }
             .padding(8)
-            .background(Color(.systemGray6).opacity(0.5))
+            .background(themeColors.cardBackground.opacity(0.5))
             .cornerRadius(6)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -184,7 +186,7 @@ struct LockedThemeSelectionRow: View {
                     .fontWeight(.semibold)
                 Text(theme.description)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
             }
 
             Spacer()
@@ -196,10 +198,10 @@ struct LockedThemeSelectionRow: View {
                     .font(.caption)
                     .fontWeight(.semibold)
             }
-            .foregroundColor(.gray)
+            .foregroundColor(themeColors.textSecondary)
         }
         .padding(12)
-        .background(Color(.systemGray6).opacity(0.5))
+        .background(themeColors.cardBackground.opacity(0.5))
         .cornerRadius(12)
         .opacity(0.6)
     }

@@ -10,7 +10,7 @@ struct GuestProfileView: View {
             VStack(spacing: 16) {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.system(size: 80))
-                    .foregroundColor(.gray.opacity(0.5))
+                    .foregroundColor(themeColors.textSecondary.opacity(0.5))
 
                 Text("Guest User")
                     .font(.title2)
@@ -18,7 +18,7 @@ struct GuestProfileView: View {
 
                 Text("You are browsing the app as a guest")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
             }
             .padding(.top, 40)
 

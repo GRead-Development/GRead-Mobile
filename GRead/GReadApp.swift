@@ -30,6 +30,8 @@ struct GReadApp: App {
                     accent: themeManager.currentTheme.accent,
                     background: themeManager.currentTheme.background
                 ))
+                // Lock to light color scheme to use custom theme consistently
+                .preferredColorScheme(nil)
 
                 // Splash screen overlay
                 if showSplash {

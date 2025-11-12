@@ -10,6 +10,7 @@ import SwiftUI
 struct ModerationView: View {
     let userId: Int
     let userName: String
+    @Environment(\.themeColors) var themeColors
 
     @State private var isBlocked = false
     @State private var isMuted = false
@@ -31,7 +32,7 @@ struct ModerationView: View {
                     Button(action: { toggleBlockUser() }) {
                         HStack {
                             Image(systemName: isBlocked ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(isBlocked ? .red : .gray)
+                                .foregroundColor(isBlocked ? themeColors.error : themeColors.textSecondary)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(isBlocked ? "Blocked" : "Block User")
@@ -39,7 +40,7 @@ struct ModerationView: View {
                                 if isBlocked {
                                     Text("This user is blocked")
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                 }
                             }
 
@@ -58,7 +59,7 @@ struct ModerationView: View {
                     Button(action: { toggleMuteUser() }) {
                         HStack {
                             Image(systemName: isMuted ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(isMuted ? .orange : .gray)
+                                .foregroundColor(isMuted ? themeColors.warning : themeColors.textSecondary)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(isMuted ? "Muted" : "Mute User")
@@ -66,7 +67,7 @@ struct ModerationView: View {
                                 if isMuted {
                                     Text("You won't see this user's posts")
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                 }
                             }
 
@@ -85,14 +86,14 @@ struct ModerationView: View {
                     Button(action: { showReportSheet = true }) {
                         HStack {
                             Image(systemName: "flag.fill")
-                                .foregroundColor(.red)
+                                .foregroundColor(themeColors.error)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Report User")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(themeColors.error)
                                 Text("Report inappropriate behavior")
                                     .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
 
                             Spacer()
@@ -107,9 +108,9 @@ struct ModerationView: View {
                     Section {
                         HStack(spacing: 12) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(themeColors.success)
                             Text(successMessage)
-                                .foregroundColor(.green)
+                                .foregroundColor(themeColors.success)
                         }
                         .padding(.vertical, 4)
                     }
@@ -119,9 +120,9 @@ struct ModerationView: View {
                     Section {
                         HStack(spacing: 12) {
                             Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundColor(.red)
+                                .foregroundColor(themeColors.error)
                             Text(errorMessage)
-                                .foregroundColor(.red)
+                                .foregroundColor(themeColors.error)
                         }
                         .padding(.vertical, 4)
                     }
@@ -250,6 +251,7 @@ struct ReportUserSheet: View {
     let isLoading: Bool
 
     @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
 
     var body: some View {
         NavigationView {
@@ -257,7 +259,7 @@ struct ReportUserSheet: View {
                 Section(header: Text("Report \(userName)")) {
                     Text("Help us understand what's wrong")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
 
                 Section(header: Text("Reason")) {
@@ -269,7 +271,7 @@ struct ReportUserSheet: View {
                 Section {
                     Text("Please be as specific as possible. Your report helps us keep the community safe.")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
             }
             .navigationTitle("Report User")

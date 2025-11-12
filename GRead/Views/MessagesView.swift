@@ -10,6 +10,7 @@ import SwiftUI
 import Foundation
 
 struct MessagesView: View {
+    @Environment(\.themeColors) var themeColors
     @State private var messages: [Message] = []
     @State private var isLoading = false
     
@@ -20,7 +21,7 @@ struct MessagesView: View {
                     ProgressView()
                 } else if messages.isEmpty {
                     Text("No messages")
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 } else {
                     List(messages) { message in
                         NavigationLink(destination: MessageThreadView(message: message)) {
@@ -67,11 +68,12 @@ struct MessagesView: View {
 
 struct MessageRowView: View {
     let message: Message
-    
+    @Environment(\.themeColors) var themeColors
+
     var body: some View {
         HStack {
             Circle()
-                .fill(message.unreadCount ?? 0 > 0 ? Color.blue : Color.gray.opacity(0.3))
+                .fill(message.unreadCount ?? 0 > 0 ? themeColors.primary : themeColors.textSecondary.opacity(0.3))
                 .frame(width: 10, height: 10)
             
             VStack(alignment: .leading, spacing: 4) {
@@ -82,17 +84,17 @@ struct MessageRowView: View {
                 if let content = message.message?.rendered {
                     Text(content.stripHTML())
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                         .lineLimit(2)
                 }
             }
-            
+
             Spacer()
-            
+
             if let date = message.dateSent {
                 Text(date.toRelativeTime())
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
             }
         }
     }
@@ -100,7 +102,8 @@ struct MessageRowView: View {
 
 struct MessageThreadView: View {
     let message: Message
-    
+    @Environment(\.themeColors) var themeColors
+
     var body: some View {
         VStack {
             ScrollView {
@@ -108,7 +111,7 @@ struct MessageThreadView: View {
                     if let content = message.message?.rendered {
                         Text(content.stripHTML())
                             .padding()
-                            .background(Color.gray.opacity(0.1))
+                            .background(themeColors.cardBackground)
                             .cornerRadius(10)
                     }
                 }

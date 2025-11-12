@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LoginRegisterView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var selectedTab = 0
 
     var body: some View {
@@ -11,7 +12,7 @@ struct LoginRegisterView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "books.vertical.fill")
                         .font(.system(size: 60))
-                        .foregroundColor(.blue)
+                        .foregroundColor(themeColors.primary)
 
                     Text("GRead")
                         .font(.title)
@@ -19,7 +20,7 @@ struct LoginRegisterView: View {
 
                     Text("It's just fun.")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
                 .padding(.vertical, 24)
 

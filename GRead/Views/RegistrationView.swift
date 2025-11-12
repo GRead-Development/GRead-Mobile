@@ -4,6 +4,7 @@ import SwiftUI
 
 struct RegistrationView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var username = ""
     @State private var email = ""
     @State private var password = ""
@@ -26,12 +27,12 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Username")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .padding(.leading, 4)
 
                         HStack {
                             Image(systemName: "person.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                                 .frame(width: 20)
 
                             TextField("Choose a username", text: $username)
@@ -39,7 +40,7 @@ struct RegistrationView: View {
                                 .disableAutocorrection(true)
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.1))
+                        .background(themeColors.textSecondary.opacity(0.1))
                         .cornerRadius(10)
                     }
 
@@ -47,12 +48,12 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .padding(.leading, 4)
 
                         HStack {
                             Image(systemName: "envelope.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                                 .frame(width: 20)
 
                             TextField("Enter your email", text: $email)
@@ -62,7 +63,7 @@ struct RegistrationView: View {
                                 .keyboardType(.emailAddress)
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.1))
+                        .background(themeColors.textSecondary.opacity(0.1))
                         .cornerRadius(10)
                     }
 
@@ -70,12 +71,12 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Password")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .padding(.leading, 4)
 
                         HStack {
                             Image(systemName: "lock.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                                 .frame(width: 20)
 
                             if showPassword {
@@ -90,11 +91,11 @@ struct RegistrationView: View {
                                 showPassword.toggle()
                             } label: {
                                 Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.1))
+                        .background(themeColors.textSecondary.opacity(0.1))
                         .cornerRadius(10)
                     }
 
@@ -102,12 +103,12 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Confirm Password")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                             .padding(.leading, 4)
 
                         HStack {
                             Image(systemName: "lock.fill")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                                 .frame(width: 20)
 
                             if showConfirmPassword {
@@ -122,11 +123,11 @@ struct RegistrationView: View {
                                 showConfirmPassword.toggle()
                             } label: {
                                 Image(systemName: showConfirmPassword ? "eye.slash.fill" : "eye.fill")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.1))
+                        .background(themeColors.textSecondary.opacity(0.1))
                         .cornerRadius(10)
                     }
                 }
@@ -138,14 +139,14 @@ struct RegistrationView: View {
 
                     HStack(spacing: 8) {
                         Image(systemName: isSuccessMessage ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(isSuccessMessage ? .green : .red)
+                            .foregroundColor(isSuccessMessage ? themeColors.success : themeColors.error)
                         Text(error)
                             .font(.caption)
-                            .foregroundColor(isSuccessMessage ? .green : .red)
+                            .foregroundColor(isSuccessMessage ? themeColors.success : themeColors.error)
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(isSuccessMessage ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+                    .background(isSuccessMessage ? themeColors.success.opacity(0.1) : themeColors.error.opacity(0.1))
                     .cornerRadius(10)
                     .padding(.horizontal, 24)
                 }
@@ -154,7 +155,7 @@ struct RegistrationView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 12) {
                         Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
-                            .foregroundColor(agreedToTerms ? .blue : .gray)
+                            .foregroundColor(agreedToTerms ? themeColors.primary : themeColors.textSecondary)
                             .font(.title3)
                             .onTapGesture {
                                 agreedToTerms.toggle()
@@ -164,18 +165,18 @@ struct RegistrationView: View {
                             HStack(spacing: 0) {
                                 Text("I agree to the ")
                                     .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
 
                                 Link("Terms of Service", destination: URL(string: "https://gread.fun/tos")!)
                                     .font(.caption)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(themeColors.primary)
                             }
                         }
 
                         Spacer()
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.05))
+                    .background(themeColors.textSecondary.opacity(0.05))
                     .cornerRadius(10)
                     .onTapGesture {
                         agreedToTerms.toggle()
@@ -196,7 +197,7 @@ struct RegistrationView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(isFormValid && agreedToTerms && !isLoading ? Color.blue : Color.gray.opacity(0.3))
+                    .background(isFormValid && agreedToTerms && !isLoading ? themeColors.primary : themeColors.textSecondary.opacity(0.3))
                     .foregroundColor(.white)
                     .cornerRadius(10)
                 }

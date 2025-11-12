@@ -56,7 +56,7 @@ struct MainTabView: View {
                             .foregroundColor(themeColors.primary)
                         Text("Sign in to post and interact")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(themeColors.textSecondary)
                         Spacer()
                     }
                     .padding()

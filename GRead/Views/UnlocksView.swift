@@ -2,6 +2,7 @@ import SwiftUI
 
 struct UnlocksView: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
     @State private var selectedTab = 0
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -26,12 +27,12 @@ struct UnlocksView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 48))
-                            .foregroundColor(.orange)
+                            .foregroundColor(themeColors.warning)
                         Text(errorMessage)
                             .font(.headline)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemGray6))
+                    .background(themeColors.cardBackground)
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
@@ -80,6 +81,7 @@ struct UnlocksView: View {
 
 struct ThemesGridView: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
     var unlockedThemes: [AppTheme] {
@@ -129,6 +131,7 @@ struct ThemesGridView: View {
 
 struct ThemeCardView: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
     let theme: AppTheme
     let isUnlocked: Bool
 
@@ -148,7 +151,7 @@ struct ThemeCardView: View {
                     .fill(theme.accent)
                 Circle()
                     .fill(theme.background)
-                    .overlay(Circle().stroke(.gray, lineWidth: 0.5))
+                    .overlay(Circle().stroke(themeColors.textSecondary, lineWidth: 0.5))
             }
             .frame(height: 40)
 
@@ -159,7 +162,7 @@ struct ThemeCardView: View {
 
                 Text(theme.description)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -171,7 +174,7 @@ struct ThemeCardView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
-                    .background(Color.blue)
+                    .background(themeColors.primary)
                     .cornerRadius(6)
             } else if isUnlocked {
                 Button(action: {
@@ -182,18 +185,18 @@ struct ThemeCardView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
-                        .background(Color(.systemGray5))
+                        .background(themeColors.cardBackground)
                         .foregroundColor(.primary)
                         .cornerRadius(6)
                 }
             }
         }
         .padding(12)
-        .background(isActive ? Color.blue.opacity(0.1) : Color(.systemGray6))
+        .background(isActive ? themeColors.primary.opacity(0.1) : themeColors.cardBackground)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isActive ? Color.blue : Color.clear, lineWidth: 2)
+                .stroke(isActive ? themeColors.primary : Color.clear, lineWidth: 2)
         )
     }
 }
@@ -201,6 +204,7 @@ struct ThemeCardView: View {
 // MARK: - Locked Theme Card View
 
 struct LockedThemeCardView: View {
+    @Environment(\.themeColors) var themeColors
     let theme: AppTheme
 
     var body: some View {
@@ -208,13 +212,13 @@ struct LockedThemeCardView: View {
             // Color preview (greyed out)
             HStack(spacing: 4) {
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
                 Circle()
-                    .fill(Color.gray.opacity(0.3))
+                    .fill(themeColors.textSecondary.opacity(0.3))
             }
             .frame(height: 40)
 
@@ -225,7 +229,7 @@ struct LockedThemeCardView: View {
 
                 Text(theme.description)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(themeColors.textSecondary)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,12 +243,12 @@ struct LockedThemeCardView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
-            .background(Color.gray.opacity(0.2))
-            .foregroundColor(.gray)
+            .background(themeColors.textSecondary.opacity(0.2))
+            .foregroundColor(themeColors.textSecondary)
             .cornerRadius(6)
         }
         .padding(12)
-        .background(Color(.systemGray6).opacity(0.5))
+        .background(themeColors.cardBackground.opacity(0.5))
         .cornerRadius(12)
         .opacity(0.7)
     }
@@ -254,6 +258,7 @@ struct LockedThemeCardView: View {
 
 struct IconsGridView: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
     let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
     var unlockedIcons: [String] {
@@ -271,16 +276,16 @@ struct IconsGridView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "star.fill")
                         .font(.system(size: 32))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(themeColors.warning)
                     Text("No custom icons unlocked yet")
                         .font(.subheadline)
                     Text("Unlock more cosmetics by progressing in the app")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(themeColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(32)
-                .background(Color(.systemGray6))
+                .background(themeColors.cardBackground)
                 .cornerRadius(12)
             } else {
                 LazyVGrid(columns: columns, spacing: 12) {
@@ -297,6 +302,7 @@ struct IconsGridView: View {
 
 struct IconCardView: View {
     @ObservedObject var themeManager = ThemeManager.shared
+    @Environment(\.themeColors) var themeColors
     let iconId: String
 
     var isActive: Bool {
@@ -307,7 +313,7 @@ struct IconCardView: View {
         VStack(spacing: 8) {
             Image(systemName: "star.circle.fill")
                 .font(.system(size: 32))
-                .foregroundColor(.blue)
+                .foregroundColor(themeColors.primary)
 
             Text(iconId)
                 .font(.caption2)
@@ -320,13 +326,13 @@ struct IconCardView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
-                    .background(Color.blue)
+                    .background(themeColors.primary)
                     .cornerRadius(4)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(12)
-        .background(isActive ? Color.blue.opacity(0.1) : Color(.systemGray6))
+        .background(isActive ? themeColors.primary.opacity(0.1) : themeColors.cardBackground)
         .cornerRadius(8)
     }
 }

@@ -3,6 +3,7 @@ import UIKit
 import SwiftUI
 struct LoginView: View {
     @EnvironmentObject var authManager: AuthManager
+    @Environment(\.themeColors) var themeColors
     @State private var username = ""
     @State private var password = ""
     @State private var isLoading = false
@@ -22,12 +23,12 @@ struct LoginView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Username")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                                 .padding(.leading, 4)
-                            
+
                             HStack {
                                 Image(systemName: "person.fill")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                                     .frame(width: 20)
                                 
                                 TextField("Enter your username", text: $username)
@@ -36,7 +37,7 @@ struct LoginView: View {
                                     .textContentType(.username)
                             }
                             .padding()
-                            .background(Color.gray.opacity(0.1))
+                            .background(themeColors.textSecondary.opacity(0.1))
                             .cornerRadius(10)
                         }
                         
@@ -44,12 +45,12 @@ struct LoginView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Password")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeColors.textSecondary)
                                 .padding(.leading, 4)
-                            
+
                             HStack {
                                 Image(systemName: "lock.fill")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                                     .frame(width: 20)
                                 
                                 if showPassword {
@@ -64,11 +65,11 @@ struct LoginView: View {
                                     showPassword.toggle()
                                 } label: {
                                     Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(themeColors.textSecondary)
                                 }
                             }
                             .padding()
-                            .background(Color.gray.opacity(0.1))
+                            .background(themeColors.textSecondary.opacity(0.1))
                             .cornerRadius(10)
                         }
                     }
@@ -78,14 +79,14 @@ struct LoginView: View {
                     if let error = errorMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
+                                .foregroundColor(themeColors.error)
                             Text(error)
                                 .font(.caption)
-                                .foregroundColor(.red)
+                                .foregroundColor(themeColors.error)
                         }
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.red.opacity(0.1))
+                        .background(themeColors.error.opacity(0.1))
                         .cornerRadius(10)
                         .padding(.horizontal, 24)
                     }
@@ -105,7 +106,7 @@ struct LoginView: View {
                         .padding()
                         .background(
                             (username.isEmpty || password.isEmpty || isLoading) ?
-                            Color.gray.opacity(0.3) : Color.blue
+                            themeColors.textSecondary.opacity(0.3) : themeColors.primary
                         )
                         .foregroundColor(.white)
                         .cornerRadius(10)

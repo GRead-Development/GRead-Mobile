@@ -13,6 +13,7 @@ struct ProfileView: View {
     @State private var stats: UserStats?
     @State private var showStatsView = false
     @State private var isLoadingStats = false
+    @State private var statsLoadError: String?
     @ObservedObject var themeManager = ThemeManager.shared
     @Environment(\.themeColors) var themeColors
 
@@ -29,7 +30,7 @@ struct ProfileView: View {
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
                                     .font(.system(size: 60))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeColors.textSecondary)
                             }
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
@@ -92,6 +93,30 @@ struct ProfileView: View {
                                 }
                                 .padding(.horizontal)
                                 .padding(.bottom, 16)
+                            } else if let error = statsLoadError {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(themeColors.warning)
+                                    Text("Unable to Load Stats")
+                                        .font(.headline)
+                                        .foregroundColor(themeColors.textPrimary)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(themeColors.textSecondary)
+                                        .multilineTextAlignment(.center)
+                                    Button(action: loadUserStats) {
+                                        Text("Retry")
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(themeColors.primary)
+                                            .cornerRadius(6)
+                                    }
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
                             } else if isLoadingStats {
                                 ProgressView()
                                     .padding()
@@ -140,7 +165,7 @@ struct ProfileView: View {
                                 NavigationLink(destination: BlockedUsersView()) {
                                     HStack(spacing: 12) {
                                         Image(systemName: "hand.raised.fill")
-                                            .foregroundColor(.red)
+                                            .foregroundColor(themeColors.error)
                                             .frame(width: 30)
                                         Text("Blocked Users")
                                             .foregroundColor(themeColors.textPrimary)
@@ -162,58 +187,64 @@ struct ProfileView: View {
                                     .foregroundColor(themeColors.textPrimary)
                                     .padding(.horizontal)
 
-                                Link(destination: URL(string: "mailto:admin@gread.fun?subject=Contact%20Request")!) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "envelope.fill")
-                                            .foregroundColor(themeColors.primary)
-                                            .frame(width: 30)
-                                        Text("Contact Developers")
-                                            .foregroundColor(themeColors.textPrimary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(themeColors.textSecondary)
+                                if let mailURL = URL(string: "mailto:admin@gread.fun?subject=Contact%20Request") {
+                                    Link(destination: mailURL) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "envelope.fill")
+                                                .foregroundColor(themeColors.primary)
+                                                .frame(width: 30)
+                                            Text("Contact Developers")
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(themeColors.textSecondary)
+                                        }
+                                        .padding()
+                                        .background(themeColors.background)
+                                        .border(themeColors.border, width: 1)
+                                        .cornerRadius(8)
+                                        .padding(.horizontal)
                                     }
-                                    .padding()
-                                    .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
-                                    .cornerRadius(8)
-                                    .padding(.horizontal)
                                 }
 
-                                Link(destination: URL(string: "https://gread.fun/tutorials")!) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "book.circle.fill")
-                                            .foregroundColor(themeColors.primary)
-                                            .frame(width: 30)
-                                        Text("Tutorials")
-                                            .foregroundColor(themeColors.textPrimary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(themeColors.textSecondary)
+                                if let tutorialsURL = URL(string: "https://gread.fun/tutorials") {
+                                    Link(destination: tutorialsURL) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "book.circle.fill")
+                                                .foregroundColor(themeColors.primary)
+                                                .frame(width: 30)
+                                            Text("Tutorials")
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(themeColors.textSecondary)
+                                        }
+                                        .padding()
+                                        .background(themeColors.background)
+                                        .border(themeColors.border, width: 1)
+                                        .cornerRadius(8)
+                                        .padding(.horizontal)
                                     }
-                                    .padding()
-                                    .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
-                                    .cornerRadius(8)
-                                    .padding(.horizontal)
                                 }
 
-                                Link(destination: URL(string: "mailto:admin@gread.fun?subject=Request%20Data%20Deletion")!) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "trash.fill")
-                                            .foregroundColor(.orange)
-                                            .frame(width: 30)
-                                        Text("Request Data Deletion")
-                                            .foregroundColor(themeColors.textPrimary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(themeColors.textSecondary)
+                                if let deleteURL = URL(string: "mailto:admin@gread.fun?subject=Request%20Data%20Deletion") {
+                                    Link(destination: deleteURL) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "trash.fill")
+                                                .foregroundColor(themeColors.warning)
+                                                .frame(width: 30)
+                                            Text("Request Data Deletion")
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(themeColors.textSecondary)
+                                        }
+                                        .padding()
+                                        .background(themeColors.background)
+                                        .border(themeColors.border, width: 1)
+                                        .cornerRadius(8)
+                                        .padding(.horizontal)
                                     }
-                                    .padding()
-                                    .background(themeColors.background)
-                                    .border(themeColors.border, width: 1)
-                                    .cornerRadius(8)
-                                    .padding(.horizontal)
                                 }
                             }
 
@@ -267,8 +298,8 @@ struct ProfileView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.red.opacity(0.1))
-                                .foregroundColor(.red)
+                                .background(themeColors.error.opacity(0.1))
+                                .foregroundColor(themeColors.error)
                                 .cornerRadius(8)
                             }
                             .padding()
@@ -283,6 +314,7 @@ struct ProfileView: View {
             .background(themeColors.background)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationViewStyle(.stack)
             .task {
                 loadUserStats()
             }
@@ -294,10 +326,12 @@ struct ProfileView: View {
 
         Task {
             isLoadingStats = true
+            statsLoadError = nil
             do {
                 stats = try await APIManager.shared.getUserStats(userId: userId)
             } catch {
                 print("Failed to load user stats: \(error)")
+                statsLoadError = "Failed to load stats. Please try again later."
             }
             isLoadingStats = false
         }
