@@ -140,7 +140,15 @@ class AuthManager: ObservableObject {
                 }
 
                 if let errorMessage = errorMessage {
-                    throw AuthError.registrationFailed(errorMessage)
+                    let lowercasedError = errorMessage.lowercased()
+                    
+                    if lowercasedError.contains("email is already registered") || lowercasedError.contains("email address is already in use") || lowercasedError.contains("Sorry, that email address is already used!") {
+                        throw AuthError.registrationFailed("This email address is already registered.")
+                    }
+                    
+                    if lowercasedError.contains("sorry, that username already exists") || lowercasedError.contains("username is already in use") {
+                        throw AuthError.registrationFailed("This username is already taken. Please choose another.")
+                    }
                 }
                 throw AuthError.registrationFailed("Registration failed. Please check your information.")
             }
