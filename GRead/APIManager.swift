@@ -426,6 +426,157 @@ class APIManager {
             authenticated: false
         )
     }
+
+    // MARK: - Achievements API
+
+    /// Get all achievements
+    /// - Parameter showHidden: Include hidden achievements in response
+    func getAllAchievements(showHidden: Bool = false) async throws -> [Achievement] {
+        return try await customRequest(
+            endpoint: "/achievements?show_hidden=\(showHidden)",
+            authenticated: false
+        )
+    }
+
+    /// Get specific achievement by ID
+    /// - Parameter id: Achievement ID
+    func getAchievement(id: Int) async throws -> Achievement {
+        return try await customRequest(
+            endpoint: "/achievements/\(id)",
+            authenticated: false
+        )
+    }
+
+    /// Get achievement by slug
+    /// - Parameter slug: Achievement slug identifier
+    func getAchievement(slug: String) async throws -> Achievement {
+        return try await customRequest(
+            endpoint: "/achievements/slug/\(slug)",
+            authenticated: false
+        )
+    }
+
+    /// Get user achievements with progress
+    /// - Parameters:
+    ///   - userId: User ID
+    ///   - filter: Filter type - "all", "unlocked", or "locked"
+    func getUserAchievements(userId: Int, filter: String = "all") async throws -> UserAchievementsResponse {
+        return try await customRequest(
+            endpoint: "/user/\(userId)/achievements?filter=\(filter)",
+            authenticated: false
+        )
+    }
+
+    /// Get achievement statistics
+    func getAchievementStats() async throws -> AchievementStats {
+        return try await customRequest(
+            endpoint: "/achievements/stats",
+            authenticated: false
+        )
+    }
+
+    /// Get achievements leaderboard
+    /// - Parameters:
+    ///   - limit: Number of results to return (max 100)
+    ///   - offset: Pagination offset
+    func getAchievementsLeaderboard(limit: Int = 10, offset: Int = 0) async throws -> [LeaderboardEntry] {
+        return try await customRequest(
+            endpoint: "/achievements/leaderboard?limit=\(limit)&offset=\(offset)",
+            authenticated: false
+        )
+    }
+
+    /// Get current user's achievements (requires authentication)
+    /// - Parameter filter: Filter type - "all", "unlocked", or "locked"
+    func getMyAchievements(filter: String = "all") async throws -> UserAchievementsResponse {
+        return try await customRequest(
+            endpoint: "/me/achievements?filter=\(filter)",
+            authenticated: true
+        )
+    }
+
+    /// Check and unlock achievements for current user (requires authentication)
+    func checkAndUnlockAchievements() async throws -> UserAchievementsResponse {
+        return try await customRequest(
+            endpoint: "/me/achievements/check",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    // MARK: - Mentions API
+
+    /// Search for users to mention
+    /// - Parameters:
+    ///   - query: Search term (minimum 2 characters)
+    ///   - limit: Number of results (max 100)
+    func searchMentionUsers(query: String, limit: Int = 10) async throws -> MentionSearchResponse {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return try await customRequest(
+            endpoint: "/mentions/search?query=\(encodedQuery)&limit=\(limit)",
+            authenticated: false
+        )
+    }
+
+    /// Get all mentionable users
+    /// - Parameters:
+    ///   - limit: Number of users to return (max 500)
+    ///   - offset: Pagination offset
+    func getMentionableUsers(limit: Int = 50, offset: Int = 0) async throws -> MentionUsersResponse {
+        return try await customRequest(
+            endpoint: "/mentions/users?limit=\(limit)&offset=\(offset)",
+            authenticated: false
+        )
+    }
+
+    /// Get user mentions by ID
+    /// - Parameters:
+    ///   - userId: User ID
+    ///   - limit: Number of mentions to return
+    ///   - offset: Pagination offset
+    func getUserMentions(userId: Int, limit: Int = 20, offset: Int = 0) async throws -> UserMentionsResponse {
+        return try await customRequest(
+            endpoint: "/user/\(userId)/mentions?limit=\(limit)&offset=\(offset)",
+            authenticated: false
+        )
+    }
+
+    /// Get activity containing mentions
+    /// - Parameters:
+    ///   - userId: Optional user ID to filter by specific user
+    ///   - limit: Number of activities to return
+    ///   - offset: Pagination offset
+    func getMentionsActivity(userId: Int? = nil, limit: Int = 20, offset: Int = 0) async throws -> MentionsActivityResponse {
+        var endpoint = "/mentions/activity?limit=\(limit)&offset=\(offset)"
+        if let userId = userId {
+            endpoint += "&user_id=\(userId)"
+        }
+        return try await customRequest(
+            endpoint: endpoint,
+            authenticated: false
+        )
+    }
+
+    /// Get current user's mentions (requires authentication)
+    /// - Parameters:
+    ///   - limit: Number of mentions to return
+    ///   - offset: Pagination offset
+    ///   - unreadOnly: Only return unread mentions
+    func getMyMentions(limit: Int = 20, offset: Int = 0, unreadOnly: Bool = false) async throws -> UserMentionsResponse {
+        return try await customRequest(
+            endpoint: "/me/mentions?limit=\(limit)&offset=\(offset)&unread_only=\(unreadOnly)",
+            authenticated: true
+        )
+    }
+
+    /// Mark mentions as read for current user (requires authentication)
+    func markMentionsAsRead() async throws -> MarkMentionsReadResponse {
+        return try await customRequest(
+            endpoint: "/me/mentions/read",
+            method: "POST",
+            authenticated: true
+        )
+    }
 }
 
 enum APIError: LocalizedError {

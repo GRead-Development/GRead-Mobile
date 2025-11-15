@@ -1,0 +1,13 @@
+{
+  "id": "bloodmoon",
+  "name": "Bloodmoon",
+  "description": "Dark and spooky!",
+  "primary_color": "#950101",
+  "secondary_color": "#3D0000",
+  "accent_color": "#FF0000",
+  "background_color": "#000000",
+  "unlock_requirement": {
+    "stat": "points",
+    "value": 10000
+  }
+}
