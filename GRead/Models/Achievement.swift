@@ -61,6 +61,23 @@ struct UserAchievementsResponse: Codable {
         case unlockedCount = "unlocked_count"
         case achievements
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Handle userId as either Int or String
+        if let userIdInt = try? container.decode(Int.self, forKey: .userId) {
+            userId = userIdInt
+        } else if let userIdString = try? container.decode(String.self, forKey: .userId) {
+            userId = Int(userIdString) ?? 0
+        } else {
+            userId = 0
+        }
+
+        total = try container.decode(Int.self, forKey: .total)
+        unlockedCount = try container.decode(Int.self, forKey: .unlockedCount)
+        achievements = try container.decode([Achievement].self, forKey: .achievements)
+    }
 }
 
 // MARK: - Achievement Stats
@@ -104,6 +121,22 @@ struct TopAchiever: Codable {
         case userName = "user_name"
         case achievementCount = "achievement_count"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Handle userId as either Int or String
+        if let userIdInt = try? container.decode(Int.self, forKey: .userId) {
+            userId = userIdInt
+        } else if let userIdString = try? container.decode(String.self, forKey: .userId) {
+            userId = Int(userIdString) ?? 0
+        } else {
+            userId = 0
+        }
+
+        userName = try container.decode(String.self, forKey: .userName)
+        achievementCount = try container.decode(Int.self, forKey: .achievementCount)
+    }
 }
 
 // MARK: - Leaderboard Entry
@@ -121,5 +154,23 @@ struct LeaderboardEntry: Codable, Identifiable {
         case userName = "user_name"
         case userAvatarUrl = "user_avatar_url"
         case achievementCount = "achievement_count"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        rank = try container.decode(Int.self, forKey: .rank)
+
+        // Handle userId as either Int or String
+        if let userIdInt = try? container.decode(Int.self, forKey: .userId) {
+            userId = userIdInt
+        } else if let userIdString = try? container.decode(String.self, forKey: .userId) {
+            userId = Int(userIdString) ?? 0
+        } else {
+            userId = 0
+        }
+
+        userName = try container.decode(String.self, forKey: .userName)
+        userAvatarUrl = try container.decode(String.self, forKey: .userAvatarUrl)
+        achievementCount = try container.decode(Int.self, forKey: .achievementCount)
     }
 }

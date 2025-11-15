@@ -100,4 +100,22 @@ struct Activity: Codable, Identifiable {
             return "Unknown User"
         }
     }
+
+    // Computed property for avatar URL
+    // Since BuddyPress activity API doesn't include avatars, we construct the URL
+    var avatarURL: String {
+        // If we have a user_avatar field from API, use it
+        if let avatar = userAvatar, !avatar.isEmpty {
+            return avatar
+        }
+
+        // Otherwise construct BuddyPress members avatar URL
+        // This will attempt to load the avatar, falling back to default if not found
+        if let userId = userId {
+            return "https://gread.fun/wp-content/uploads/avatars/\(userId)/avatar-bpfull.jpg"
+        }
+
+        // Final fallback - use a generic avatar
+        return "https://www.gravatar.com/avatar/default?d=mp&s=150"
+    }
 }

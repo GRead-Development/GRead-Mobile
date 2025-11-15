@@ -127,6 +127,60 @@ struct ProfileView: View {
                         }
                         .background(themeColors.background)
 
+                        // Progress Section
+                        VStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Progress")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .padding(.horizontal)
+
+                                NavigationLink(destination: AchievementsView().environmentObject(authManager)) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "trophy.fill")
+                                            .foregroundColor(themeColors.warning)
+                                            .frame(width: 30)
+                                        Text("Achievements")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+
+                                NavigationLink(destination: AchievementsTestView()) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "wrench.and.screwdriver.fill")
+                                            .foregroundColor(themeColors.secondary)
+                                            .frame(width: 30)
+                                        Text("Test Achievement Endpoints")
+                                            .foregroundColor(themeColors.textPrimary)
+                                            .font(.caption)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 16)
+
                         // Social Sections (Hidden for now)
                         /*
                         VStack(spacing: 16) {

@@ -7,19 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		186C44602EBDA2620054BCA4 /* Themes in Resources */ = {isa = PBXBuildFile; fileRef = 186C445F2EBDA2610054BCA4 /* Themes */; };
+		186C44602EBDA2620054BCA4 /* GRead/Themes in Resources */ = {isa = PBXBuildFile; fileRef = 186C445F2EBDA2610054BCA4 /* GRead/Themes */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		186B44502EBDA1610054BCA4 /* GRead.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GRead.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		186C445F2EBDA2610054BCA4 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GRead/Themes; sourceTree = "<group>"; };
+		186C445F2EBDA2610054BCA4 /* GRead/Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GRead/Themes; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		186B44522EBDA1610054BCA4 /* GRead */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = GRead;
 			sourceTree = "<group>";
 		};
@@ -56,7 +54,7 @@
 		18DD4BC42EC45FA40084AF14 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
-				186C445F2EBDA2610054BCA4 /* Themes */,
+				186C445F2EBDA2610054BCA4 /* GRead/Themes */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -123,7 +121,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				186C44602EBDA2620054BCA4 /* Themes in Resources */,
+				186C44602EBDA2620054BCA4 /* GRead/Themes in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

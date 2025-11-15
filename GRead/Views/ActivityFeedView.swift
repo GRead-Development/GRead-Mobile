@@ -516,41 +516,42 @@ struct ActivityRowView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 // Avatar with fallback
-                if let avatarUrl = activity.userAvatar, let url = URL(string: avatarUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        case .empty:
-                            Circle()
-                                .fill(themeColors.primary.opacity(0.2))
-                                .overlay {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                }
-                        case .failure:
-                            Circle()
-                                .fill(themeColors.primary.opacity(0.2))
-                                .overlay {
-                                    Image(systemName: "person.fill")
-                                        .foregroundColor(themeColors.primary)
-                                        .font(.system(size: 16))
-                                }
-                        @unknown default:
-                            Circle()
-                                .fill(themeColors.primary.opacity(0.2))
-                        }
+                AsyncImage(url: URL(string: activity.avatarURL)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .empty:
+                        Circle()
+                            .fill(themeColors.primary.opacity(0.2))
+                            .overlay {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                    case .failure:
+                        Circle()
+                            .fill(themeColors.primary.opacity(0.2))
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(themeColors.primary)
+                                    .font(.system(size: 16))
+                            }
+                    @unknown default:
+                        Circle()
+                            .fill(themeColors.primary.opacity(0.2))
                     }
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
-                    .onTapGesture {
-                        if let userId = activity.userId {
-                            onUserTap(userId)
-                        }
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(Circle())
+                .onTapGesture {
+                    if let userId = activity.userId {
+                        onUserTap(userId)
                     }
-                } else {
+                }
+
+                // Fallback if we still need it
+                if false {
                     Circle()
                         .fill(themeColors.primary.opacity(0.2))
                         .frame(width: 40, height: 40)
@@ -778,41 +779,41 @@ struct CommentItemView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 // Avatar with fallback
-                if let avatarUrl = comment.userAvatar, let url = URL(string: avatarUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        case .empty:
-                            Circle()
-                                .fill(themeColors.primary.opacity(0.15))
-                                .overlay {
-                                    ProgressView()
-                                        .scaleEffect(0.7)
-                                }
-                        case .failure:
-                            Circle()
-                                .fill(themeColors.primary.opacity(0.15))
-                                .overlay {
-                                    Image(systemName: "person.fill")
-                                        .foregroundColor(themeColors.primary)
-                                        .font(.system(size: 12))
-                                }
-                        @unknown default:
-                            Circle()
-                                .fill(themeColors.primary.opacity(0.15))
-                        }
+                AsyncImage(url: URL(string: comment.avatarURL)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .empty:
+                        Circle()
+                            .fill(themeColors.primary.opacity(0.15))
+                            .overlay {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            }
+                    case .failure:
+                        Circle()
+                            .fill(themeColors.primary.opacity(0.15))
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(themeColors.primary)
+                                    .font(.system(size: 12))
+                            }
+                    @unknown default:
+                        Circle()
+                            .fill(themeColors.primary.opacity(0.15))
                     }
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-                    .onTapGesture {
-                        if let userId = comment.userId {
-                            onUserTap(userId)
-                        }
+                }
+                .frame(width: 32, height: 32)
+                .clipShape(Circle())
+                .onTapGesture {
+                    if let userId = comment.userId {
+                        onUserTap(userId)
                     }
-                } else {
+                }
+
+                if false {
                     Circle()
                         .fill(themeColors.primary.opacity(0.15))
                         .frame(width: 32, height: 32)
