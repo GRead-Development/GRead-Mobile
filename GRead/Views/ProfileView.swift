@@ -155,28 +155,6 @@ struct ProfileView: View {
                                     )
                                     .padding(.horizontal)
                                 }
-
-                                NavigationLink(destination: AchievementsTestView()) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "wrench.and.screwdriver.fill")
-                                            .foregroundColor(themeColors.secondary)
-                                            .frame(width: 30)
-                                        Text("Test Achievement Endpoints")
-                                            .foregroundColor(themeColors.textPrimary)
-                                            .font(.caption)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(themeColors.textSecondary)
-                                    }
-                                    .padding()
-                                    .background(themeColors.background)
-                                    .cornerRadius(8)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(themeColors.border, lineWidth: 1)
-                                    )
-                                    .padding(.horizontal)
-                                }
                             }
                         }
                         .padding(.vertical, 16)
