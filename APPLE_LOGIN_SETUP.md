@@ -9,18 +9,37 @@ The iOS implementation has been completed with the following components:
 ### 1. Files Modified/Created:
 - `GRead.entitlements` - Added Sign in with Apple capability
 - `AppleSignInButton.swift` - Custom Apple Sign In button component
-- `AuthManager.swift` - Added `signInWithApple()` method
+- `AuthManager.swift` - Added `signInWithApple()` and username selection methods
 - `LoginView.swift` - Integrated Apple Sign In button
 - `RegistrationView.swift` - Integrated Apple Sign In button
+- `UsernameSelectionView.swift` - NEW: Username picker for new Apple users
+- `GReadApp.swift` - Updated to show username selection screen
 
 ### 2. How It Works:
+
+**For New Users (First Time Sign In):**
 1. User taps "Sign in with Apple" button
 2. Apple authentication flow opens
 3. User authorizes with Face ID/Touch ID
 4. App receives identity token and user identifier
 5. App sends token to WordPress backend at `/wp-json/custom/v1/apple-login`
-6. Backend verifies token and creates/logs in user
-7. JWT token is returned and stored in app
+6. Backend creates temporary account and returns `needs_username_selection: true`
+7. App shows **Username Selection Screen** with:
+   - Auto-suggested username (from email or name)
+   - Real-time availability checking
+   - Format validation
+8. User chooses their username
+9. App sends chosen username to `/wp-json/custom/v1/complete-apple-signup`
+10. Backend updates the account and completes signup
+11. User is logged in and can use the app
+
+**For Returning Users:**
+1. User taps "Sign in with Apple" button
+2. Apple authentication flow opens
+3. User authorizes with Face ID/Touch ID
+4. Backend recognizes existing account
+5. JWT token is returned
+6. User is immediately logged in (no username selection)
 
 ## WordPress/BuddyPress Backend Setup
 
@@ -206,6 +225,8 @@ Check logs at: `/wp-content/debug.log`
 
 ### POST `/wp-json/custom/v1/apple-login`
 
+Handles initial Apple Sign In authentication.
+
 **Request Body**:
 ```json
 {
@@ -219,7 +240,17 @@ Check logs at: `/wp-content/debug.log`
 }
 ```
 
-**Success Response (200)**:
+**Success Response - New User (200)**:
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJh...",
+  "needs_username_selection": true,
+  "suggested_username": "john_doe",
+  "user_id": 123
+}
+```
+
+**Success Response - Existing User (200)**:
 ```json
 {
   "token": "eyJ0eXAiOiJKV1QiLCJh...",
@@ -240,20 +271,91 @@ Check logs at: `/wp-content/debug.log`
 }
 ```
 
+### POST `/wp-json/custom/v1/check-username`
+
+Checks if a username is available.
+
+**Request Body**:
+```json
+{
+  "username": "johndoe"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "available": true,
+  "username": "johndoe"
+}
+```
+
+### POST `/wp-json/custom/v1/complete-apple-signup`
+
+Completes Apple Sign In by setting the chosen username. Requires authentication.
+
+**Headers**:
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Request Body**:
+```json
+{
+  "username": "johndoe"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "username": "johndoe",
+  "user_id": 123
+}
+```
+
+**Error Response - Username Taken (400)**:
+```json
+{
+  "code": "username_taken",
+  "message": "Username is already taken",
+  "data": {
+    "status": 400
+  }
+}
+```
+
 ## Testing Checklist
 
+**Backend Setup:**
 - [ ] Apple Developer account configured
 - [ ] Bundle Identifier matches everywhere
 - [ ] WordPress plugin installed and activated
 - [ ] JWT Authentication configured
 - [ ] HTTPS enabled on WordPress site
+
+**Username Selection Flow:**
+- [ ] Test new user sees username selection screen
+- [ ] Test suggested username is displayed
+- [ ] Test real-time username availability checking
+- [ ] Test username validation (3+ chars, alphanumeric + underscore)
+- [ ] Test choosing custom username
+- [ ] Test choosing suggested username
+- [ ] Test duplicate username rejection
+
+**Authentication Flow:**
 - [ ] Test new user creation via Apple Sign In
-- [ ] Test existing user login via Apple Sign In
+- [ ] Test existing user login via Apple Sign In (no username selection)
 - [ ] Test email privacy (hidden email)
 - [ ] Test without email provided
 - [ ] Verify JWT token works with other API endpoints
-- [ ] Test BuddyPress profile creation
+- [ ] Test BuddyPress profile creation with chosen username
+
+**Device Testing:**
 - [ ] Test on physical iOS device (required for Apple Sign In)
+- [ ] Test with different Apple IDs
+- [ ] Test returning user experience
 
 ## Support & Resources
 

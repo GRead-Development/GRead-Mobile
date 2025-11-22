@@ -12,7 +12,10 @@ struct GReadApp: App {
             ZStack {
                 // Main app content
                 Group {
-                    if authManager.isAuthenticated {
+                    if authManager.needsUsernameSelection {
+                        UsernameSelectionView()
+                            .environmentObject(authManager)
+                    } else if authManager.isAuthenticated {
                         MainTabView()
                             .environmentObject(authManager)
                     } else if authManager.isGuestMode {

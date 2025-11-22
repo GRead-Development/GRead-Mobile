@@ -10,7 +10,10 @@ class AuthManager: ObservableObject {
     @Published var isAuthenticated = false
     @Published var currentUser: User?
     @Published var isGuestMode = false
+    @Published var needsUsernameSelection = false
+    @Published var suggestedUsername: String?
     var jwtToken: String?
+    var pendingAppleUserData: [String: Any]?
 
     init() {
         loadAuthState()
@@ -246,6 +249,21 @@ class AuthManager: ObservableObject {
                 throw AuthError.httpError(httpResponse.statusCode)
             }
 
+            // Try to parse as Apple login response first
+            if let jsonResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                // Check if username selection is needed
+                if let needsUsername = jsonResponse["needs_username_selection"] as? Bool, needsUsername {
+                    // Store the pending data
+                    await MainActor.run {
+                        self.pendingAppleUserData = jsonResponse
+                        self.suggestedUsername = jsonResponse["suggested_username"] as? String
+                        self.jwtToken = jsonResponse["token"] as? String
+                        self.needsUsernameSelection = true
+                    }
+                    return
+                }
+            }
+
             // Parse JWT response from backend
             let jwtResponse = try JSONDecoder().decode(JWTResponse.self, from: data)
 
@@ -258,12 +276,92 @@ class AuthManager: ObservableObject {
             await MainActor.run {
                 self.isAuthenticated = true
                 self.isGuestMode = false
+                self.needsUsernameSelection = false
                 saveAuthState()
             }
         } catch let error as AuthError {
             throw error
         } catch {
             Logger.error("Apple Sign In error: \(error)")
+            throw AuthError.networkError
+        }
+    }
+
+    func checkUsernameAvailability(username: String) async throws -> Bool {
+        guard let url = URL(string: "https://gread.fun/wp-json/custom/v1/check-username") else {
+            throw AuthError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = ["username": username]
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw AuthError.invalidResponse
+        }
+
+        if let jsonResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let available = jsonResponse["available"] as? Bool {
+            return available
+        }
+
+        return false
+    }
+
+    func completeUsernameSelection(username: String) async throws {
+        guard let token = jwtToken else {
+            throw AuthError.unauthorized
+        }
+
+        guard let url = URL(string: "https://gread.fun/wp-json/custom/v1/complete-apple-signup") else {
+            throw AuthError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: String] = ["username": username]
+        request.httpBody = try JSONEncoder().encode(body)
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AuthError.invalidResponse
+            }
+
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.debug("Complete Username Response: \(responseString)")
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                Logger.error("Complete username failed with status: \(httpResponse.statusCode)")
+                throw AuthError.httpError(httpResponse.statusCode)
+            }
+
+            // Fetch current user from BuddyPress
+            try await fetchCurrentUser()
+
+            await MainActor.run {
+                self.isAuthenticated = true
+                self.isGuestMode = false
+                self.needsUsernameSelection = false
+                self.suggestedUsername = nil
+                self.pendingAppleUserData = nil
+                saveAuthState()
+            }
+        } catch let error as AuthError {
+            throw error
+        } catch {
+            Logger.error("Complete username error: \(error)")
             throw AuthError.networkError
         }
     }
