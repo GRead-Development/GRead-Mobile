@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import SwiftUI
+import AuthenticationServices
 struct LoginView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
@@ -130,6 +131,27 @@ struct LoginView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 8)
 
+                    // Divider
+                    HStack {
+                        Rectangle()
+                            .fill(themeColors.border)
+                            .frame(height: 1)
+                        Text("OR")
+                            .font(.caption)
+                            .foregroundColor(themeColors.textSecondary)
+                            .padding(.horizontal, 12)
+                        Rectangle()
+                            .fill(themeColors.border)
+                            .frame(height: 1)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+
+                    // Apple Sign In Button
+                    AppleSignInButton(onSignIn: handleAppleSignIn)
+                        .padding(.horizontal, 24)
+                        .disabled(isLoading)
+
                     Spacer()
                 }
             }
@@ -156,6 +178,27 @@ struct LoginView: View {
             } catch {
                 await MainActor.run {
                     errorMessage = "Login failed. Please try again."
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    private func handleAppleSignIn(_ credential: ASAuthorizationAppleIDCredential) {
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                try await authManager.signInWithApple(credential: credential)
+            } catch let error as AuthError {
+                await MainActor.run {
+                    errorMessage = error.errorDescription
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Apple Sign In failed. Please try again."
                     isLoading = false
                 }
             }

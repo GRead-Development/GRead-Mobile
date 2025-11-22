@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import Combine
+import AuthenticationServices
 
 // MARK: - Auth Manager with JWT
 class AuthManager: ObservableObject {
@@ -178,6 +179,91 @@ class AuthManager: ObservableObject {
             throw error
         } catch {
             Logger.error("Registration error: \(error)")
+            throw AuthError.networkError
+        }
+    }
+
+    func signInWithApple(credential: ASAuthorizationAppleIDCredential) async throws {
+        // Extract user information from Apple credential
+        let userIdentifier = credential.user
+        let email = credential.email
+        let fullName = credential.fullName
+
+        // Create the identity token string
+        guard let identityTokenData = credential.identityToken,
+              let identityToken = String(data: identityTokenData, encoding: .utf8) else {
+            throw AuthError.invalidResponse
+        }
+
+        // Send to WordPress backend for verification and user creation/login
+        guard let url = URL(string: "https://gread.fun/wp-json/custom/v1/apple-login") else {
+            throw AuthError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var body: [String: Any] = [
+            "identity_token": identityToken,
+            "user_identifier": userIdentifier
+        ]
+
+        // Include email and name if this is the first sign-in (Apple only provides these once)
+        if let email = email {
+            body["email"] = email
+        }
+
+        if let fullName = fullName {
+            var nameComponents: [String: String] = [:]
+            if let givenName = fullName.givenName {
+                nameComponents["given_name"] = givenName
+            }
+            if let familyName = fullName.familyName {
+                nameComponents["family_name"] = familyName
+            }
+            if !nameComponents.isEmpty {
+                body["full_name"] = nameComponents
+            }
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AuthError.invalidResponse
+            }
+
+            // Log response for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.debug("Apple Login Response: \(responseString)")
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                Logger.error("Apple Login failed with status: \(httpResponse.statusCode)")
+                throw AuthError.httpError(httpResponse.statusCode)
+            }
+
+            // Parse JWT response from backend
+            let jwtResponse = try JSONDecoder().decode(JWTResponse.self, from: data)
+
+            // Store JWT token
+            self.jwtToken = jwtResponse.token
+
+            // Fetch current user from BuddyPress
+            try await fetchCurrentUser()
+
+            await MainActor.run {
+                self.isAuthenticated = true
+                self.isGuestMode = false
+                saveAuthState()
+            }
+        } catch let error as AuthError {
+            throw error
+        } catch {
+            Logger.error("Apple Sign In error: \(error)")
             throw AuthError.networkError
         }
     }
