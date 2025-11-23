@@ -504,6 +504,79 @@ struct CommentThreadView: View {
     }
 }
 
+// MARK: - Activity Book Card Component
+struct ActivityBookCardView: View {
+    @Environment(\.themeColors) var themeColors
+    let book: Book
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Book cover image
+            if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .empty:
+                        ZStack {
+                            Color.gray.opacity(0.3)
+                            ProgressView()
+                        }
+                    case .failure:
+                        ZStack {
+                            Color.gray.opacity(0.3)
+                            Image(systemName: "book.fill")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 24))
+                        }
+                    @unknown default:
+                        Color.gray.opacity(0.3)
+                    }
+                }
+                .frame(width: 100, height: 150)
+                .cornerRadius(8)
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            } else {
+                // Fallback when no cover URL
+                ZStack {
+                    Color.gray.opacity(0.3)
+                    Image(systemName: "book.fill")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 24))
+                }
+                .frame(width: 100, height: 150)
+                .cornerRadius(8)
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            }
+
+            // Book title and author
+            VStack(alignment: .leading, spacing: 2) {
+                Text(book.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .lineLimit(2)
+                    .frame(width: 100, alignment: .leading)
+                if let author = book.author {
+                    Text(author)
+                        .font(.caption2)
+                        .foregroundColor(themeColors.textSecondary)
+                        .lineLimit(1)
+                        .frame(width: 100, alignment: .leading)
+                }
+            }
+        }
+        .padding(8)
+        .background(themeColors.background)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(themeColors.textSecondary.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
 struct ActivityRowView: View {
     let activity: Activity
     let onUserTap: (Int) -> Void
@@ -607,7 +680,19 @@ struct ActivityRowView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
-            
+
+            // Tagged Books Display
+            if let taggedBooks = activity.taggedBooks, !taggedBooks.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(taggedBooks) { book in
+                            ActivityBookCardView(book: book)
+                        }
+                    }
+                }
+                .padding(.top, 8)
+            }
+
             // Only show comment button for top-level posts
             if indentLevel == 0 {
                 HStack(spacing: 20) {
@@ -876,12 +961,66 @@ struct CommentItemView: View {
     }
 }
 
+// MARK: - Book Tag View Component
+struct BookTagView: View {
+    @Environment(\.themeColors) var themeColors
+    let book: Book
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Color.gray.opacity(0.3)
+                }
+                .frame(width: 30, height: 45)
+                .cornerRadius(4)
+            } else {
+                Color.gray.opacity(0.3)
+                    .frame(width: 30, height: 45)
+                    .cornerRadius(4)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(book.title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                if let author = book.author {
+                    Text(author)
+                        .font(.caption2)
+                        .foregroundColor(themeColors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(themeColors.textSecondary)
+                    .font(.caption)
+            }
+        }
+        .padding(8)
+        .background(themeColors.primary.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
 struct NewActivityView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.themeColors) var themeColors
     @State private var content = ""
     @State private var isPosting = false
     @State private var errorMessage: String?
+    @State private var selectedBooks: [Book] = []
+    @State private var bookSearchQuery = ""
+    @State private var bookSearchResults: [Book] = []
+    @State private var isSearchingBooks = false
+    @State private var showBookSearch = false
     let onPost: () -> Void
 
     var body: some View {
@@ -921,6 +1060,111 @@ struct NewActivityView: View {
                         .stroke(themeColors.textSecondary.opacity(0.3), lineWidth: 1)
                 )
 
+            // Tagged Books Section
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Tagged Books")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Button(action: {
+                        showBookSearch.toggle()
+                    }) {
+                        Image(systemName: showBookSearch ? "chevron.up" : "chevron.down")
+                            .foregroundColor(themeColors.primary)
+                    }
+                }
+
+                // Display selected books
+                if !selectedBooks.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(selectedBooks) { book in
+                                BookTagView(book: book, onRemove: {
+                                    selectedBooks.removeAll { $0.id == book.id }
+                                })
+                            }
+                        }
+                    }
+                }
+
+                // Book search interface
+                if showBookSearch {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(themeColors.textSecondary)
+                            TextField("Search books...", text: $bookSearchQuery)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .onChange(of: bookSearchQuery) { _ in
+                                    searchBooksDebounced()
+                                }
+                            if isSearchingBooks {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                        .padding(8)
+                        .background(themeColors.textSecondary.opacity(0.1))
+                        .cornerRadius(8)
+
+                        // Search results
+                        if !bookSearchResults.isEmpty {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(bookSearchResults) { book in
+                                        Button(action: {
+                                            if !selectedBooks.contains(where: { $0.id == book.id }) {
+                                                selectedBooks.append(book)
+                                            }
+                                            bookSearchQuery = ""
+                                            bookSearchResults = []
+                                        }) {
+                                            HStack(spacing: 12) {
+                                                if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
+                                                    AsyncImage(url: url) { image in
+                                                        image
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                    } placeholder: {
+                                                        Color.gray.opacity(0.3)
+                                                    }
+                                                    .frame(width: 40, height: 60)
+                                                    .cornerRadius(4)
+                                                } else {
+                                                    Color.gray.opacity(0.3)
+                                                        .frame(width: 40, height: 60)
+                                                        .cornerRadius(4)
+                                                }
+
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(book.title)
+                                                        .font(.subheadline)
+                                                        .foregroundColor(themeColors.text)
+                                                        .lineLimit(2)
+                                                    if let author = book.author {
+                                                        Text(author)
+                                                            .font(.caption)
+                                                            .foregroundColor(themeColors.textSecondary)
+                                                            .lineLimit(1)
+                                                    }
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding(8)
+                                            .background(themeColors.textSecondary.opacity(0.05))
+                                            .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: 200)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+
             if let error = errorMessage {
                 Text(error)
                     .font(.caption)
@@ -935,21 +1179,27 @@ struct NewActivityView: View {
     private func postActivity() {
         isPosting = true
         errorMessage = nil
-        
+
         Task {
             do {
-                let body: [String: Any] = [
+                var body: [String: Any] = [
                     "content": content,
                     "type": "activity_update",
                     "component": "activity"
                 ]
-                
+
+                // Add book IDs if any books are tagged
+                if !selectedBooks.isEmpty {
+                    let bookIds = selectedBooks.map { $0.id }
+                    body["book_ids"] = bookIds
+                }
+
                 let _: AnyCodable = try await APIManager.shared.request(
                     endpoint: "/activity",
                     method: "POST",
                     body: body
                 )
-                
+
                 await MainActor.run {
                     onPost()
                     dismiss()
@@ -959,6 +1209,38 @@ struct NewActivityView: View {
                     errorMessage = "Failed to post: \(error.localizedDescription)"
                     isPosting = false
                 }
+            }
+        }
+    }
+
+    private func searchBooksDebounced() {
+        // Simple debounce - cancel previous search and start new one after delay
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+
+            guard !bookSearchQuery.isEmpty else {
+                bookSearchResults = []
+                return
+            }
+
+            await searchBooks()
+        }
+    }
+
+    private func searchBooks() async {
+        isSearchingBooks = true
+
+        do {
+            let results = try await APIManager.shared.searchBooks(query: bookSearchQuery)
+            await MainActor.run {
+                bookSearchResults = results
+                isSearchingBooks = false
+            }
+        } catch {
+            await MainActor.run {
+                print("Error searching books: \(error)")
+                bookSearchResults = []
+                isSearchingBooks = false
             }
         }
     }

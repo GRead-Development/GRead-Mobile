@@ -577,6 +577,33 @@ class APIManager {
             authenticated: true
         )
     }
+
+    // MARK: - Book Methods
+
+    /// Search for books
+    /// - Parameter query: Search query string
+    /// - Returns: Array of books matching the query
+    func searchBooks(query: String) async throws -> [Book] {
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            throw APIError.invalidURL
+        }
+        return try await customRequest(
+            endpoint: "/books/search?query=\(encodedQuery)",
+            method: "GET",
+            authenticated: true
+        )
+    }
+
+    /// Get book details by ID
+    /// - Parameter bookId: The ID of the book
+    /// - Returns: Book details
+    func getBook(id: Int) async throws -> Book {
+        return try await customRequest(
+            endpoint: "/books/\(id)",
+            method: "GET",
+            authenticated: true
+        )
+    }
 }
 
 enum APIError: LocalizedError {

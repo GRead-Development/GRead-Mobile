@@ -226,6 +226,46 @@ struct LibraryItemCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
+                // Book Cover Image
+                if let coverUrl = libraryItem.book?.coverUrl, let url = URL(string: coverUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .empty:
+                            ZStack {
+                                Color.gray.opacity(0.3)
+                                ProgressView()
+                            }
+                        case .failure:
+                            ZStack {
+                                Color.gray.opacity(0.3)
+                                Image(systemName: "book.fill")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 20))
+                            }
+                        @unknown default:
+                            Color.gray.opacity(0.3)
+                        }
+                    }
+                    .frame(width: 70, height: 105)
+                    .cornerRadius(8)
+                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                } else {
+                    // Fallback when no cover URL
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        Image(systemName: "book.fill")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 20))
+                    }
+                    .frame(width: 70, height: 105)
+                    .cornerRadius(8)
+                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                }
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text((libraryItem.book?.title ?? "Unknown Book").decodingHTMLEntities)
                         .font(.headline)

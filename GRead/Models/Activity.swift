@@ -18,6 +18,7 @@ struct Activity: Codable, Identifiable {
     let userAvatar: String?
     let parent: Int?
     var children: [Activity]?
+    let taggedBooks: [Book]?
 
     enum CodingKeys: String, CodingKey {
         case id, component, type, action, content
@@ -26,6 +27,7 @@ struct Activity: Codable, Identifiable {
         case userNicename, userLogin, displayName, userFullname
         case userAvatar = "user_avatar"
         case parent, children
+        case taggedBooks = "tagged_books"
     }
     
     // Custom decoder to handle potential data issues
@@ -79,6 +81,9 @@ struct Activity: Codable, Identifiable {
         // Parent and children for threading
         parent = try? container.decode(Int.self, forKey: .parent)
         children = try? container.decode([Activity].self, forKey: .children)
+
+        // Tagged books
+        taggedBooks = try? container.decode([Book].self, forKey: .taggedBooks)
 
         // Debug logging
         if displayName == nil && userLogin == nil {
