@@ -7,6 +7,8 @@ struct LibraryView: View {
     @State private var isLoading = false
     @State private var showAddBook = false
     @State private var showISBNImport = false
+    @State private var showBarcodeScanner = false
+    @State private var scannedCode = ""
     @State private var searchText = ""
     @State private var selectedFilter: String = "all"
     @State private var listRefreshID = UUID()
@@ -110,8 +112,8 @@ struct LibraryView: View {
             .navigationTitle("My Library")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Button(action: { showISBNImport = true }) {
-                        Image(systemName: "barcode")
+                    Button(action: { showBarcodeScanner = true }) {
+                        Image(systemName: "barcode.viewfinder")
                     }
                     Button(action: { showAddBook = true }) {
                         Image(systemName: "plus")
@@ -123,6 +125,16 @@ struct LibraryView: View {
                     loadLibrary()
                 })
                 .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showBarcodeScanner) {
+                BarcodeScannerView(
+                    isPresented: $showBarcodeScanner,
+                    scannedCode: $scannedCode,
+                    onCodeScanned: { code in
+                        // Automatically search for the scanned ISBN
+                        searchAndAddBookByISBN(code)
+                    }
+                )
             }
             .sheet(isPresented: $showISBNImport) {
                 ISBNImportSheet(isPresented: $showISBNImport, onBookAdded: {
@@ -203,6 +215,41 @@ struct LibraryView: View {
                 await loadLibraryAsync()
             } catch {
                 print("Error updating progress: \(error)")
+            }
+        }
+    }
+
+    private func searchAndAddBookByISBN(_ isbn: String) {
+        Task {
+            do {
+                print("🔍 Searching for ISBN: \(isbn)")
+                let cleanISBN = isbn.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // Call the ISBN-specific endpoint that queries OpenLibrary
+                let book: Book = try await APIManager.shared.customRequest(
+                    endpoint: "/books/isbn?isbn=\(cleanISBN.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
+                    method: "GET",
+                    authenticated: true
+                )
+
+                print("✅ Found book: \(book.title)")
+
+                // Add the book to the library
+                let body = ["book_id": book.id]
+                let _: EmptyResponse = try await APIManager.shared.customRequest(
+                    endpoint: "/library/add?book_id=\(book.id)",
+                    method: "POST",
+                    body: body,
+                    authenticated: true
+                )
+
+                print("✅ Book added to library")
+
+                // Reload library to show the new book
+                await loadLibraryAsync()
+            } catch {
+                print("❌ Error searching/adding book by ISBN: \(error)")
+                // You could add an alert here to notify the user of the error
             }
         }
     }
