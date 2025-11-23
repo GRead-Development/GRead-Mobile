@@ -577,6 +577,200 @@ class APIManager {
             authenticated: true
         )
     }
+
+    // MARK: - Notes API
+
+    /// Get all notes with optional filtering and pagination
+    func getNotes(limit: Int = 20, offset: Int = 0, status: String? = nil, visibility: String? = nil, category: String? = nil, tag: String? = nil) async throws -> NotesResponse {
+        var queryItems = [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+
+        if let status = status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+        if let visibility = visibility {
+            queryItems.append(URLQueryItem(name: "visibility", value: visibility))
+        }
+        if let category = category {
+            queryItems.append(URLQueryItem(name: "category", value: category))
+        }
+        if let tag = tag {
+            queryItems.append(URLQueryItem(name: "tag", value: tag))
+        }
+
+        return try await customRequest(
+            endpoint: "/notes",
+            method: "GET",
+            queryItems: queryItems
+        )
+    }
+
+    /// Get a specific note by ID
+    func getNote(id: Int) async throws -> Note {
+        return try await customRequest(
+            endpoint: "/notes/\(id)",
+            method: "GET"
+        )
+    }
+
+    /// Get notes for a specific user
+    func getUserNotes(userId: Int, limit: Int = 20, offset: Int = 0, status: String? = nil) async throws -> UserNotesResponse {
+        var queryItems = [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+
+        if let status = status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+
+        return try await customRequest(
+            endpoint: "/user/\(userId)/notes",
+            method: "GET",
+            queryItems: queryItems
+        )
+    }
+
+    /// Get current user's notes (requires authentication)
+    func getMyNotes(limit: Int = 20, offset: Int = 0, status: String? = nil) async throws -> UserNotesResponse {
+        var queryItems = [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset))
+        ]
+
+        if let status = status {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+
+        return try await customRequest(
+            endpoint: "/me/notes",
+            method: "GET",
+            queryItems: queryItems,
+            authenticated: true
+        )
+    }
+
+    /// Create a new note (requires authentication)
+    func createNote(title: String, content: String, visibility: String = "public", tags: [String]? = nil, categories: [String]? = nil, isPinned: Bool = false) async throws -> NoteActionResponse {
+        let request = CreateNoteRequest(
+            title: title,
+            content: content,
+            visibility: visibility,
+            tags: tags,
+            categories: categories,
+            isPinned: isPinned
+        )
+
+        return try await customRequest(
+            endpoint: "/notes",
+            method: "POST",
+            body: request,
+            authenticated: true
+        )
+    }
+
+    /// Update an existing note (requires authentication)
+    func updateNote(id: Int, title: String? = nil, content: String? = nil, visibility: String? = nil, tags: [String]? = nil, categories: [String]? = nil, isPinned: Bool? = nil) async throws -> NoteActionResponse {
+        let request = UpdateNoteRequest(
+            title: title,
+            content: content,
+            visibility: visibility,
+            tags: tags,
+            categories: categories,
+            isPinned: isPinned
+        )
+
+        return try await customRequest(
+            endpoint: "/notes/\(id)",
+            method: "PUT",
+            body: request,
+            authenticated: true
+        )
+    }
+
+    /// Delete a note (requires authentication)
+    func deleteNote(id: Int) async throws -> DeleteNoteResponse {
+        return try await customRequest(
+            endpoint: "/notes/\(id)",
+            method: "DELETE",
+            authenticated: true
+        )
+    }
+
+    /// Like or unlike a note (requires authentication)
+    func likeNote(id: Int) async throws -> LikeNoteResponse {
+        return try await customRequest(
+            endpoint: "/notes/\(id)/like",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Unlike a note (requires authentication)
+    func unlikeNote(id: Int) async throws -> LikeNoteResponse {
+        return try await customRequest(
+            endpoint: "/notes/\(id)/unlike",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Pin or unpin a note (requires authentication)
+    func pinNote(id: Int) async throws -> PinNoteResponse {
+        return try await customRequest(
+            endpoint: "/notes/\(id)/pin",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Unpin a note (requires authentication)
+    func unpinNote(id: Int) async throws -> PinNoteResponse {
+        return try await customRequest(
+            endpoint: "/notes/\(id)/unpin",
+            method: "POST",
+            authenticated: true
+        )
+    }
+
+    /// Search notes by query
+    func searchNotes(query: String, limit: Int = 20, offset: Int = 0) async throws -> NoteSearchResponse {
+        return try await customRequest(
+            endpoint: "/notes/search",
+            method: "GET",
+            queryItems: [
+                URLQueryItem(name: "query", value: query),
+                URLQueryItem(name: "limit", value: String(limit)),
+                URLQueryItem(name: "offset", value: String(offset))
+            ]
+        )
+    }
+
+    /// Get notes statistics
+    func getNotesStats() async throws -> NoteStats {
+        return try await customRequest(
+            endpoint: "/notes/stats",
+            method: "GET"
+        )
+    }
+
+    /// Get all available note categories
+    func getNoteCategories() async throws -> NoteCategoriesResponse {
+        return try await customRequest(
+            endpoint: "/notes/categories",
+            method: "GET"
+        )
+    }
+
+    /// Get all available note tags
+    func getNoteTags() async throws -> NoteTagsResponse {
+        return try await customRequest(
+            endpoint: "/notes/tags",
+            method: "GET"
+        )
+    }
 }
 
 enum APIError: LocalizedError {
