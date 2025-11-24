@@ -911,20 +911,18 @@ struct NewActivityView: View {
 
             Divider()
 
-            TextEditor(text: $content)
-                .frame(minHeight: 150)
-                .padding(8)
-                .background(themeColors.textSecondary.opacity(0.1))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(themeColors.textSecondary.opacity(0.3), lineWidth: 1)
-                )
+            MentionTextEditor(
+                text: $content,
+                placeholder: "What's on your mind? Use @ to mention users...",
+                minHeight: 150
+            )
+            .padding(.horizontal)
 
             if let error = errorMessage {
                 Text(error)
                     .font(.caption)
                     .foregroundColor(themeColors.error)
+                    .padding(.horizontal)
             }
 
             Spacer()

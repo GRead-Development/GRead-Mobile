@@ -238,8 +238,8 @@ struct LibraryItemCard: View {
                     }
 
                     HStack(spacing: 8) {
-                        if let status = libraryItem.status {
-                            StatusBadge(status: status)
+                        if !libraryItem.status.isEmpty {
+                            StatusBadge(status: libraryItem.status)
                         }
                     }
 

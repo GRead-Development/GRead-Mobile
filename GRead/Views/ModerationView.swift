@@ -146,7 +146,7 @@ struct ModerationView: View {
                 )
             }
             .task {
-                loadModerationLists()
+                await loadModerationLists()
             }
         }
     }
@@ -225,19 +225,19 @@ struct ModerationView: View {
         }
     }
 
-    private func loadModerationLists() {
-        Task {
-            do {
-                let blockedResponse = try await APIManager.shared.getBlockedList()
+    private func loadModerationLists() async {
+        do {
+            let blockedResponse = try await APIManager.shared.getBlockedList()
+            let mutedResponse = try await APIManager.shared.getMutedList()
+
+            await MainActor.run {
                 blockedList = blockedResponse.blockedUsers
                 isBlocked = blockedList.contains(userId)
-
-                let mutedResponse = try await APIManager.shared.getMutedList()
                 mutedList = mutedResponse.mutedUsers
                 isMuted = mutedList.contains(userId)
-            } catch {
-                print("Error loading moderation lists: \(error)")
             }
+        } catch {
+            print("Failed to load moderation lists: \(error)")
         }
     }
 }

@@ -19,21 +19,3 @@ struct Book: Codable, Identifiable {
         case publishedDate = "published_date"
     }
 }
-
-struct LibraryItem: Codable, Identifiable {
-    let id: Int
-    let book: Book?
-    var currentPage: Int
-    var status: String? // e.g., "reading", "completed", "paused"
-    let addedDate: String?
-    let lastUpdated: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case book
-        case currentPage = "current_page"
-        case status
-        case addedDate = "added_date"
-        case lastUpdated = "last_updated"
-    }
-}
