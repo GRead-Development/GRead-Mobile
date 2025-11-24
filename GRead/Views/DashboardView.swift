@@ -59,7 +59,10 @@ struct DashboardView: View {
                 await loadAllData()
             }
             .task {
-                if isLoading {
+                await loadAllData()
+            }
+            .onChange(of: authManager.currentUser?.id) { _ in
+                Task {
                     await loadAllData()
                 }
             }
@@ -256,8 +259,14 @@ struct DashboardView: View {
 
     // MARK: - Data Loading
     private func loadAllData() async {
+        await MainActor.run {
+            isLoading = true
+        }
+
         guard let userId = authManager.currentUser?.id else {
-            isLoading = false
+            await MainActor.run {
+                isLoading = false
+            }
             return
         }
 
