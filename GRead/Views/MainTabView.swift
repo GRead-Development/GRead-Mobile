@@ -19,30 +19,37 @@ struct MainTabView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                ActivityFeedView()
+                DashboardView()
                     .environmentObject(authManager)
                     .tag(0)
+                    .tabItem {
+                        Label("Home", systemImage: "house.fill")
+                    }
+
+                ActivityFeedView()
+                    .environmentObject(authManager)
+                    .tag(1)
                     .tabItem {
                         Label("Activity", systemImage: "flame.fill")
                     }
 
                 LibraryView()
                     .environmentObject(authManager)
-                    .tag(1)
+                    .tag(2)
                     .tabItem {
                         Label("Library", systemImage: "books.vertical.fill")
                     }
 
                 if authManager.isAuthenticated {
                     ProfileView()
-                        .tag(2)
+                        .tag(3)
                         .tabItem {
                             Label("Profile", systemImage: "person.fill")
                         }
                 } else {
                     GuestProfileView()
                         .environmentObject(authManager)
-                        .tag(2)
+                        .tag(3)
                         .tabItem {
                             Label("Profile", systemImage: "person.fill")
                         }
