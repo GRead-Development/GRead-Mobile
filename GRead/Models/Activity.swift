@@ -1,3 +1,5 @@
+import Foundation
+
 struct Activity: Codable, Identifiable {
     let id: Int
     let userId: Int?
@@ -16,6 +18,7 @@ struct Activity: Codable, Identifiable {
     let displayName: String?
     let userFullname: String?
     let userAvatar: String?
+    let userEmail: String?
     let parent: Int?
     var children: [Activity]?
 
@@ -25,6 +28,7 @@ struct Activity: Codable, Identifiable {
         case dateRecorded, hideSitewide, isSpam
         case userNicename, userLogin, displayName, userFullname
         case userAvatar = "user_avatar"
+        case userEmail = "user_email"
         case parent, children
     }
     
@@ -69,12 +73,13 @@ struct Activity: Codable, Identifiable {
         // Date as string (don't try to parse as Date object)
         dateRecorded = try? container.decode(String.self, forKey: .dateRecorded)
 
-        // User info fields (email excluded for privacy)
+        // User info fields
         userNicename = try? container.decode(String.self, forKey: .userNicename)
         userLogin = try? container.decode(String.self, forKey: .userLogin)
         displayName = try? container.decode(String.self, forKey: .displayName)
         userFullname = try? container.decode(String.self, forKey: .userFullname)
         userAvatar = try? container.decode(String.self, forKey: .userAvatar)
+        userEmail = try? container.decode(String.self, forKey: .userEmail)
 
         // Parent and children for threading
         parent = try? container.decode(Int.self, forKey: .parent)
@@ -102,17 +107,20 @@ struct Activity: Codable, Identifiable {
     }
 
     // Computed property for avatar URL
-    // Since BuddyPress activity API doesn't include avatars, we construct the URL
+    // Since BuddyPress activity API doesn't include avatars, we use Gravatar
     var avatarURL: String {
         // If we have a user_avatar field from API, use it
         if let avatar = userAvatar, !avatar.isEmpty {
             return avatar
         }
 
-        // Otherwise construct BuddyPress members avatar URL
-        // This will attempt to load the avatar, falling back to default if not found
-        if let userId = userId {
-            return "https://gread.fun/wp-content/uploads/avatars/\(userId)/avatar-bpfull.jpg"
+        // Use Gravatar based on email (like WordPress does)
+        if let email = userEmail, !email.isEmpty {
+            let trimmedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if let emailData = trimmedEmail.data(using: .utf8) {
+                let hash = emailData.md5Hash
+                return "https://www.gravatar.com/avatar/\(hash)?s=150&d=mp"
+            }
         }
 
         // Final fallback - use a generic avatar

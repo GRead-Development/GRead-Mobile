@@ -33,22 +33,16 @@ struct MainTabView: View {
                         Label("Library", systemImage: "books.vertical.fill")
                     }
 
-                NotificationsView()
-                    .tag(2)
-                    .tabItem {
-                        Label("Notifications", systemImage: "bell.fill")
-                    }
-
                 if authManager.isAuthenticated {
                     ProfileView()
-                        .tag(3)
+                        .tag(2)
                         .tabItem {
                             Label("Profile", systemImage: "person.fill")
                         }
                 } else {
                     GuestProfileView()
                         .environmentObject(authManager)
-                        .tag(3)
+                        .tag(2)
                         .tabItem {
                             Label("Profile", systemImage: "person.fill")
                         }

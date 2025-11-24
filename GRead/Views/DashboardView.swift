@@ -91,7 +91,7 @@ struct DashboardView: View {
                 Spacer()
 
                 // Avatar
-                AsyncImage(url: URL(string: authManager.currentUser?.avatarUrls?.full ?? "")) { image in
+                AsyncImage(url: URL(string: authManager.currentUser?.avatarUrl ?? "")) { image in
                     image.resizable()
                 } placeholder: {
                     Image(systemName: "person.circle.fill")

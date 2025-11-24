@@ -28,7 +28,7 @@ struct ProfileView: View {
 
                         // Profile Header
                         VStack(spacing: 16) {
-                            AsyncImage(url: URL(string: user.avatarUrls?.full ?? "")) { image in
+                            AsyncImage(url: URL(string: user.avatarUrl)) { image in
                                 image.resizable()
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")

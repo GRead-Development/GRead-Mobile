@@ -142,7 +142,7 @@ struct UserSearchResultRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: AvatarURLHelper.resolveAvatarURL(user.avatarUrls?.thumb)) { image in
+            AsyncImage(url: URL(string: user.avatarUrl)) { image in
                 image.resizable()
             } placeholder: {
                 Image(systemName: "person.circle.fill")

@@ -38,7 +38,7 @@ struct BlockedUsersView: View {
                     ForEach(blockedUsers) { user in
                         HStack(spacing: 12) {
                             // User avatar
-                            AsyncImage(url: URL(string: user.avatarUrls?.full ?? "")) { image in
+                            AsyncImage(url: URL(string: user.avatarUrl)) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)

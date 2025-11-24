@@ -93,7 +93,7 @@ struct FriendCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: AvatarURLHelper.resolveAvatarURL(friend.avatarUrls?.thumb)) { image in
+            AsyncImage(url: URL(string: friend.avatarUrl)) { image in
                 image.resizable()
             } placeholder: {
                 Image(systemName: "person.circle.fill")

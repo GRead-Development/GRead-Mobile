@@ -5,12 +5,7 @@ struct User: Codable, Identifiable {
     let userLogin: String?
     let memberTypes: [String]?
     let registeredDate: String?
-    let avatarUrls: AvatarUrls?
-
-    struct AvatarUrls: Codable {
-        let full: String?
-        let thumb: String?
-    }
+    let avatarUrls: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case id, name, link
@@ -18,6 +13,23 @@ struct User: Codable, Identifiable {
         case memberTypes = "member_types"
         case registeredDate = "registered_date"
         case avatarUrls = "avatar_urls"
+    }
+
+    // Computed property to get the best avatar URL
+    var avatarUrl: String {
+        // Try to get the largest avatar (96, then 48, then 24)
+        if let urls = avatarUrls {
+            if let large = urls["96"] {
+                return large
+            } else if let medium = urls["48"] {
+                return medium
+            } else if let small = urls["24"] {
+                return small
+            }
+        }
+
+        // Fallback to gravatar
+        return "https://www.gravatar.com/avatar/default?d=mp&s=150"
     }
 
     // Custom decoder to handle id being returned as string from API
@@ -39,6 +51,6 @@ struct User: Codable, Identifiable {
         userLogin = try? container.decode(String.self, forKey: .userLogin)
         memberTypes = try? container.decode([String].self, forKey: .memberTypes)
         registeredDate = try? container.decode(String.self, forKey: .registeredDate)
-        avatarUrls = try? container.decode(AvatarUrls.self, forKey: .avatarUrls)
+        avatarUrls = try? container.decode([String: String].self, forKey: .avatarUrls)
     }
 }

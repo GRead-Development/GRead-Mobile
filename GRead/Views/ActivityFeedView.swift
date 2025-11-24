@@ -997,7 +997,7 @@ struct UserProfileView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         VStack(spacing: 12) {
-                            AsyncImage(url: URL(string: user.avatarUrls?.full ?? "")) { image in
+                            AsyncImage(url: URL(string: user.avatarUrl)) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)

@@ -27,7 +27,7 @@ struct UserDetailView: View {
                     } else if let user = user {
                         // Header
                         VStack(spacing: 12) {
-                            AsyncImage(url: AvatarURLHelper.resolveAvatarURL(user.avatarUrls?.full)) { image in
+                            AsyncImage(url: URL(string: user.avatarUrl)) { image in
                                 image.resizable()
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
@@ -115,7 +115,7 @@ struct UserDetailView: View {
                                     ForEach(friends.prefix(5)) { friend in
                                         NavigationLink(destination: UserDetailView(userId: friend.id)) {
                                             HStack(spacing: 12) {
-                                                AsyncImage(url: AvatarURLHelper.resolveAvatarURL(friend.avatarUrls?.thumb)) { image in
+                                                AsyncImage(url: URL(string: friend.avatarUrl)) { image in
                                                     image.resizable()
                                                 } placeholder: {
                                                     Image(systemName: "person.circle.fill")
