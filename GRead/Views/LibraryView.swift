@@ -3,8 +3,7 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
-    @State private var libraryItems: [LibraryItem] = []
-    @State private var isLoading = false
+    @StateObject var libraryManager = LibraryManager.shared
     @State private var showAddBook = false
     @State private var showISBNImport = false
     @State private var searchText = ""
@@ -15,7 +14,7 @@ struct LibraryView: View {
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
-        let items = libraryItems.map { item -> LibraryItem in
+        let items = libraryManager.libraryItems.map { item -> LibraryItem in
             var mutableItem = item
             if let totalPages = item.book?.totalPages, totalPages > 0, item.currentPage >= totalPages {
                 mutableItem.status = "completed"
@@ -39,9 +38,9 @@ struct LibraryView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                if isLoading {
+                if libraryManager.isLoading {
                     ProgressView()
-                } else if libraryItems.isEmpty {
+                } else if libraryManager.libraryItems.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "books.vertical.fill")
                             .font(.system(size: 60))
@@ -120,52 +119,25 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showAddBook) {
                 AddBookSheet(isPresented: $showAddBook, onBookAdded: {
-                    loadLibrary()
+                    Task {
+                        await libraryManager.loadLibrary()
+                    }
                 })
                 .environmentObject(authManager)
             }
             .sheet(isPresented: $showISBNImport) {
                 ISBNImportSheet(isPresented: $showISBNImport, onBookAdded: {
-                    loadLibrary()
+                    Task {
+                        await libraryManager.loadLibrary()
+                    }
                 })
                 .environmentObject(authManager)
             }
-            .onAppear {
-                loadLibrary()
+            .task {
+                await libraryManager.loadLibraryIfNeeded()
             }
             .refreshable {
-                await loadLibraryAsync()
-            }
-        }
-    }
-
-    private func loadLibrary() {
-        isLoading = true
-        Task {
-            await loadLibraryAsync()
-        }
-    }
-
-    private func loadLibraryAsync() async {
-        do {
-            print("🔍 Attempting to load library...")
-            let items: [LibraryItem] = try await APIManager.shared.customRequest(
-                endpoint: "/library",
-                method: "GET",
-                authenticated: true
-            )
-
-            await MainActor.run {
-                libraryItems = items
-                listRefreshID = UUID()
-                print("✅ Successfully loaded \(items.count) items")
-                isLoading = false
-            }
-        } catch {
-            await MainActor.run {
-                print("❌ Error loading library: \(error)")
-                print("   Error type: \(type(of: error))")
-                isLoading = false
+                await libraryManager.loadLibrary()
             }
         }
     }
@@ -174,13 +146,7 @@ struct LibraryView: View {
         Task {
             do {
                 guard let bookId = item.book?.id else { return }
-                let _: EmptyResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/library/remove?book_id=\(bookId)",
-                    method: "DELETE",
-                    authenticated: true
-                )
-                // Reload library to ensure list state is correct
-                await loadLibraryAsync()
+                try await libraryManager.removeBook(bookId)
             } catch {
                 print("Error removing book: \(error)")
             }
@@ -191,16 +157,7 @@ struct LibraryView: View {
         Task {
             do {
                 guard let bookId = item.book?.id else { return }
-                let body = ["current_page": currentPage]
-                let _: EmptyResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/library/progress?book_id=\(bookId)&current_page=\(currentPage)",
-                    method: "POST",
-                    body: body,
-                    authenticated: true
-                )
-
-                // Reload the entire library to update status and reflect auto-completion
-                await loadLibraryAsync()
+                try await libraryManager.updateProgress(bookId: bookId, currentPage: currentPage)
             } catch {
                 print("Error updating progress: \(error)")
             }
@@ -530,13 +487,7 @@ struct AddBookSheet: View {
     private func addBook(_ book: Book) {
         Task {
             do {
-                let body = ["book_id": book.id]
-                let _: EmptyResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/library/add?book_id=\(book.id)",
-                    method: "POST",
-                    body: body,
-                    authenticated: true
-                )
+                try await LibraryManager.shared.addBook(book.id)
                 onBookAdded()
                 isPresented = false
             } catch {
@@ -794,13 +745,7 @@ struct ISBNImportSheet: View {
     private func addBook(_ book: Book) {
         Task {
             do {
-                let body = ["book_id": book.id]
-                let _: EmptyResponse = try await APIManager.shared.customRequest(
-                    endpoint: "/library/add?book_id=\(book.id)",
-                    method: "POST",
-                    body: body,
-                    authenticated: true
-                )
+                try await LibraryManager.shared.addBook(book.id)
                 onBookAdded()
                 isPresented = false
             } catch {

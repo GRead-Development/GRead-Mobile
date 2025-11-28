@@ -289,7 +289,14 @@ struct DashboardView: View {
             await MainActor.run {
                 stats = loadedStats
             }
+        } catch is CancellationError {
+            // Task was cancelled - this is normal, don't log
+            return
         } catch {
+            // Don't log cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return
+            }
             print("Failed to load stats: \(error)")
         }
     }
@@ -303,7 +310,14 @@ struct DashboardView: View {
             await MainActor.run {
                 recentActivity = response.activities
             }
+        } catch is CancellationError {
+            // Task was cancelled - this is normal, don't log
+            return
         } catch {
+            // Don't log cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return
+            }
             print("Failed to load activity: \(error)")
         }
     }
@@ -317,7 +331,14 @@ struct DashboardView: View {
             await MainActor.run {
                 libraryItems = items
             }
+        } catch is CancellationError {
+            // Task was cancelled - this is normal, don't log
+            return
         } catch {
+            // Don't log cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return
+            }
             print("Failed to load library: \(error)")
         }
     }
@@ -328,7 +349,14 @@ struct DashboardView: View {
             await MainActor.run {
                 achievements = response.achievements.sorted(by: { $0.dateUnlocked ?? "" > $1.dateUnlocked ?? "" })
             }
+        } catch is CancellationError {
+            // Task was cancelled - this is normal, don't log
+            return
         } catch {
+            // Don't log cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return
+            }
             print("Failed to load achievements: \(error)")
         }
     }

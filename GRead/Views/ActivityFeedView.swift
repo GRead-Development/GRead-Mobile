@@ -15,6 +15,7 @@ struct ActivityFeedView: View {
     @State private var mutedUserIds: [Int] = []
     @State private var listRefreshID = UUID()
     @State private var showLoginSheet = false
+    @State private var isLoadingModeration = false
 
     // Sheet state - only one sheet can be open at a time
     enum SheetType: Identifiable {
@@ -83,7 +84,6 @@ struct ActivityFeedView: View {
                             }
                         }
                         .listStyle(.plain)
-                        .id(listRefreshID)
                         .refreshable {
                             page = 1
                             hasMorePages = true
@@ -166,7 +166,6 @@ struct ActivityFeedView: View {
                     Task {
                         page = 1
                         hasMorePages = true
-                        await loadModerationLists()
                         await loadActivities()
                     }
                 })
@@ -187,7 +186,6 @@ struct ActivityFeedView: View {
                         Task {
                             page = 1
                             hasMorePages = true
-                            await loadModerationLists()
                             await loadActivities()
                         }
                     },
@@ -230,8 +228,6 @@ struct ActivityFeedView: View {
                 }
                 // Organize flat list into hierarchy
                 organizedActivities = organizeActivitiesIntoThreads(activities)
-                // Force list to rebuild by changing ID
-                listRefreshID = UUID()
 
                 hasMorePages = response.count >= 20
                 isLoading = false
@@ -242,7 +238,6 @@ struct ActivityFeedView: View {
                     activities = []
                     organizedActivities = []
                 }
-                listRefreshID = UUID()
                 hasMorePages = false
                 isLoading = false
             }
@@ -338,6 +333,19 @@ struct ActivityFeedView: View {
     }
 
     private func loadModerationLists() async {
+        // Prevent concurrent loads
+        guard !isLoadingModeration else { return }
+
+        await MainActor.run {
+            isLoadingModeration = true
+        }
+
+        defer {
+            Task { @MainActor in
+                isLoadingModeration = false
+            }
+        }
+
         do {
             let blockedListResponse = try await APIManager.shared.getBlockedList()
             let mutedListResponse = try await APIManager.shared.getMutedList()
@@ -346,7 +354,14 @@ struct ActivityFeedView: View {
                 blockedUserIds = blockedListResponse.blockedUsers
                 mutedUserIds = mutedListResponse.mutedUsers
             }
+        } catch is CancellationError {
+            // Task was cancelled - this is normal, don't log
+            return
         } catch {
+            // Don't show error for cancelled requests (URLError code -999)
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return
+            }
             // Silently fail - moderation lists are optional
             print("Failed to load moderation lists: \(error)")
         }
