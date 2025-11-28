@@ -11,8 +11,8 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
-    @StateObject var dashboardManager = DashboardManager.shared
-    @StateObject var libraryManager = LibraryManager.shared
+    @ObservedObject var dashboardManager = DashboardManager.shared
+    @ObservedObject var libraryManager = LibraryManager.shared
     @State private var refreshID = UUID()
 
     var currentlyReading: [LibraryItem] {

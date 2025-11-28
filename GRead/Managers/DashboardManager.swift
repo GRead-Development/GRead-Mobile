@@ -30,7 +30,10 @@ class DashboardManager: ObservableObject {
 
     /// Force reload dashboard data from server
     func loadDashboard(userId: Int) async {
-        guard !isLoading else { return }
+        guard !isLoading else {
+            print("📊 Dashboard already loading, skipping duplicate request")
+            return
+        }
 
         await MainActor.run {
             isLoading = true

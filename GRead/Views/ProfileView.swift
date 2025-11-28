@@ -10,7 +10,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
-    @StateObject var dashboardManager = DashboardManager.shared
+    @ObservedObject var dashboardManager = DashboardManager.shared
     @State private var showStatsView = false
     @State private var statsLoadError: String?
     @State private var showNotifications = false

@@ -19,6 +19,7 @@ struct ThemeColors {
     // Additional colors for cute/quirky design
     let cardBackground: Color
     let shadowColor: Color
+    let completedBackground: Color
 
     // UI Element Colors - Tagged System
     let headerBackground: Color
@@ -31,7 +32,7 @@ struct ThemeColors {
     init(primary: Color, secondary: Color, accent: Color, background: Color,
          textPrimary: Color? = nil, textSecondary: Color? = nil, border: Color? = nil,
          success: Color = .green, warning: Color = .yellow, error: Color = .red,
-         cardBackground: Color? = nil, shadowColor: Color? = nil,
+         cardBackground: Color? = nil, shadowColor: Color? = nil, completedBackground: Color? = nil,
          headerBackground: Color? = nil, navigationBackground: Color? = nil,
          buttonBackground: Color? = nil, inputBackground: Color? = nil,
          surfaceBackground: Color? = nil) {
@@ -47,6 +48,7 @@ struct ThemeColors {
         self.error = error
         self.cardBackground = cardBackground ?? (background == Color(hex: "#FFFFFF") ? Color(hex: "#F8F9FA") : Color(hex: "#1E1E1E"))
         self.shadowColor = shadowColor ?? Color.black.opacity(0.15)
+        self.completedBackground = completedBackground ?? success.opacity(0.15)
 
         // Tagged UI elements with smart defaults
         self.headerBackground = headerBackground ?? Color(hex: "#F0E6FF")

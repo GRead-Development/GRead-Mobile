@@ -3,14 +3,12 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
-    @StateObject var libraryManager = LibraryManager.shared
+    @ObservedObject var libraryManager = LibraryManager.shared
     @State private var showAddBook = false
     @State private var showISBNImport = false
     @State private var searchText = ""
-    @State private var selectedFilter: String = "all"
+    @State private var showCompleted = false
     @State private var listRefreshID = UUID()
-
-    let filterOptions = ["all", "reading", "completed"]
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
@@ -22,14 +20,16 @@ struct LibraryView: View {
             return mutableItem
         }
 
-        let filtered = selectedFilter == "all"
+        // Filter by status (reading by default, include completed if toggled)
+        let statusFiltered = showCompleted
             ? items
-            : items.filter { $0.status == selectedFilter }
+            : items.filter { $0.status == "reading" }
 
+        // Apply search filter if needed
         if searchText.isEmpty {
-            return filtered
+            return statusFiltered
         }
-        return filtered.filter { item in
+        return statusFiltered.filter { item in
             item.book?.title.localizedCaseInsensitiveContains(searchText) ?? false ||
             item.book?.author?.localizedCaseInsensitiveContains(searchText) ?? false
         }
@@ -69,22 +69,23 @@ struct LibraryView: View {
                     .frame(maxHeight: .infinity, alignment: .center)
                 } else {
                     VStack {
-                        // Search and Filter
+                        // Search and Show Completed Toggle
                         VStack(spacing: 12) {
                             SearchBar(text: $searchText)
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(filterOptions, id: \.self) { option in
-                                        FilterButton(
-                                            label: option.capitalized,
-                                            isSelected: selectedFilter == option,
-                                            action: { selectedFilter = option }
-                                        )
+                            HStack {
+                                Toggle(isOn: $showCompleted) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: showCompleted ? "checkmark.square.fill" : "square")
+                                            .foregroundColor(showCompleted ? themeColors.success : themeColors.textSecondary)
+                                        Text("Show Completed Books")
+                                            .font(.subheadline)
+                                            .foregroundColor(themeColors.textPrimary)
                                     }
                                 }
-                                .padding(.horizontal)
+                                .toggleStyle(SwitchToggleStyle(tint: themeColors.success))
                             }
+                            .padding(.horizontal)
                         }
                         .padding(.vertical, 12)
                         .background(themeColors.cardBackground)
@@ -180,6 +181,14 @@ struct LibraryItemCard: View {
         return Double(libraryItem.currentPage) / Double(totalPages) * 100
     }
 
+    var isCompleted: Bool {
+        libraryItem.status.lowercased() == "completed"
+    }
+
+    var cardBackgroundColor: Color {
+        isCompleted ? themeColors.completedBackground : themeColors.cardBackground
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
@@ -236,11 +245,11 @@ struct LibraryItemCard: View {
                 .foregroundColor(themeColors.textSecondary)
         }
         .padding(14)
-        .background(themeColors.cardBackground)
+        .background(cardBackgroundColor)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(themeColors.border, lineWidth: 1)
+                .stroke(isCompleted ? themeColors.success.opacity(0.3) : themeColors.border, lineWidth: 1)
         )
         .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
         .contentShape(Rectangle())
@@ -518,25 +527,6 @@ struct SearchBar: View {
             }
         }
         .padding(.horizontal)
-    }
-}
-
-struct FilterButton: View {
-    let label: String
-    let isSelected: Bool
-    let action: () -> Void
-    @Environment(\.themeColors) var themeColors
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.caption)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? themeColors.primary : themeColors.cardBackground)
-                .foregroundColor(isSelected ? .white : themeColors.textPrimary)
-                .cornerRadius(16)
-        }
     }
 }
 

@@ -28,7 +28,10 @@ class LibraryManager: ObservableObject {
 
     /// Force reload library from server
     func loadLibrary() async {
-        guard !isLoading else { return }
+        guard !isLoading else {
+            print("📚 Library already loading, skipping duplicate request")
+            return
+        }
 
         await MainActor.run {
             isLoading = true
