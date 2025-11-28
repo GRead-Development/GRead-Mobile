@@ -19,6 +19,10 @@ struct MainTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
+            // Background color that extends into safe areas
+            themeColors.background
+                .ignoresSafeArea()
+
             TabView(selection: $selectedTab) {
                 DashboardView()
                     .environmentObject(authManager)
@@ -75,7 +79,6 @@ struct MainTabView: View {
                         }
                     }
             )
-            .edgesIgnoringSafeArea(.bottom)
 
             // Custom Frosted Glass Tab Bar
             VStack(spacing: 0) {

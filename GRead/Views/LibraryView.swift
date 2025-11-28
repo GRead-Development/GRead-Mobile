@@ -37,10 +37,8 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                if libraryManager.isLoading {
-                    ProgressView()
-                } else if libraryManager.libraryItems.isEmpty {
+            Group {
+                if libraryManager.libraryItems.isEmpty && !libraryManager.isLoading {
                     VStack(spacing: 20) {
                         Image(systemName: "books.vertical.fill")
                             .font(.system(size: 60))
@@ -68,7 +66,7 @@ struct LibraryView: View {
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
                 } else {
-                    VStack {
+                    VStack(spacing: 0) {
                         // Search and Show Completed Toggle
                         VStack(spacing: 12) {
                             SearchBar(text: $searchText)
@@ -93,6 +91,11 @@ struct LibraryView: View {
                         // Library Items List
                         ScrollView {
                             VStack(spacing: 12) {
+                                if libraryManager.isLoading && libraryManager.libraryItems.isEmpty {
+                                    ProgressView()
+                                        .padding()
+                                }
+
                                 ForEach(filteredItems, id: \.id) { item in
                                     LibraryItemCard(libraryItem: item, onDelete: {
                                         deleteBook(item)
@@ -101,6 +104,10 @@ struct LibraryView: View {
                                     })
                                 }
                                 .padding()
+
+                                // Bottom padding to prevent tab bar overlap
+                                Color.clear
+                                    .frame(height: 80)
                             }
                             .id(listRefreshID)
                         }

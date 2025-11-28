@@ -577,6 +577,95 @@ class APIManager {
             authenticated: true
         )
     }
+    // MARK: - Profile Endpoints
+
+    /// Get current user's profile
+    func getMyProfile() async throws -> UserProfile {
+        let response: APIResponse<UserProfile> = try await customRequest(
+            endpoint: "/me/profile",
+            method: "GET",
+            authenticated: true
+        )
+        return response.data
+    }
+
+    /// Get another user's profile
+    func getUserProfile(userId: Int) async throws -> UserProfile {
+        let response: APIResponse<UserProfile> = try await customRequest(
+            endpoint: "/user/\(userId)/profile",
+            method: "GET",
+            authenticated: true
+        )
+        return response.data
+    }
+
+    /// Update current user's profile
+    func updateMyProfile(displayName: String? = nil, bio: String? = nil, website: String? = nil, location: String? = nil) async throws -> UserProfile {
+        var body: [String: Any] = [:]
+
+        if let displayName = displayName {
+            body["display_name"] = displayName
+        }
+        if let bio = bio {
+            body["bio"] = bio
+        }
+        if let website = website {
+            body["website"] = website
+        }
+        if let location = location {
+            body["location"] = location
+        }
+
+        let response: APIResponse<UserProfile> = try await customRequest(
+            endpoint: "/me/profile",
+            method: "PUT",
+            body: body,
+            authenticated: true
+        )
+        return response.data
+    }
+
+    /// Get extended profile fields
+    func getXProfileFields() async throws -> [XProfileField] {
+        let response: APIResponse<[String: XProfileField]> = try await customRequest(
+            endpoint: "/me/xprofile/fields",
+            method: "GET",
+            authenticated: true
+        )
+        return Array(response.data.values)
+    }
+
+    /// Update extended profile fields
+    func updateXProfileFields(fields: [XProfileFieldUpdate]) async throws -> [XProfileField] {
+        let fieldsData = fields.map { field -> [String: Any] in
+            var dict: [String: Any] = [
+                "field_id": field.fieldId,
+                "value": field.value
+            ]
+            if let visibility = field.visibility {
+                dict["visibility"] = visibility
+            }
+            return dict
+        }
+
+        let response: APIResponse<[String: XProfileField]> = try await customRequest(
+            endpoint: "/me/xprofile/fields",
+            method: "PUT",
+            body: ["fields": fieldsData],
+            authenticated: true
+        )
+        return Array(response.data.values)
+    }
+
+    /// Get xprofile field groups
+    func getXProfileGroups() async throws -> [XProfileGroup] {
+        let response: APIResponse<[XProfileGroup]> = try await customRequest(
+            endpoint: "/xprofile/groups",
+            method: "GET",
+            authenticated: true
+        )
+        return response.data
+    }
 }
 
 enum APIError: LocalizedError {

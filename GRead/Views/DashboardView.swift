@@ -46,7 +46,9 @@ struct DashboardView: View {
                         recentAchievementsSection
                     }
 
-                    Spacer(minLength: 20)
+                    // Bottom padding to prevent tab bar overlap
+                    Color.clear
+                        .frame(height: 80)
                 }
                 .padding(.vertical)
             }

@@ -82,6 +82,12 @@ struct ActivityFeedView: View {
                                         }
                                 }
                             }
+
+                            // Bottom padding to prevent tab bar overlap
+                            Color.clear
+                                .frame(height: 60)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
                         }
                         .listStyle(.plain)
                         .refreshable {

@@ -300,6 +300,27 @@ struct ProfileView: View {
                                     )
                                     .padding(.horizontal)
                                 }
+
+                                NavigationLink(destination: ProfileFieldsDebugView().environmentObject(authManager)) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "ant.fill")
+                                            .foregroundColor(themeColors.warning)
+                                            .frame(width: 30)
+                                        Text("Debug Profile Fields")
+                                            .foregroundColor(themeColors.textPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
@@ -434,8 +455,9 @@ struct ProfileView: View {
                             }
                             .padding()
 
-                            Spacer()
-                                .frame(height: 20)
+                            // Bottom padding to prevent tab bar overlap
+                            Color.clear
+                                .frame(height: 80)
                         }
                     }
                 }
