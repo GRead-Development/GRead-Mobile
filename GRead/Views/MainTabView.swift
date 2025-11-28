@@ -14,63 +14,104 @@ struct MainTabView: View {
     @State private var showingProfile = false
     @State private var showingSearch = false
     @Environment(\.themeColors) var themeColors
+    @State private var dragOffset: CGFloat = 0
     let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
                 DashboardView()
                     .environmentObject(authManager)
                     .tag(0)
-                    .tabItem {
-                        Label("Home", systemImage: "house.fill")
-                    }
 
                 ActivityFeedView()
                     .environmentObject(authManager)
                     .tag(1)
-                    .tabItem {
-                        Label("Activity", systemImage: "flame.fill")
-                    }
 
                 LibraryView()
                     .environmentObject(authManager)
                     .tag(2)
-                    .tabItem {
-                        Label("Library", systemImage: "books.vertical.fill")
-                    }
 
                 if authManager.isAuthenticated {
                     ProfileView()
                         .tag(3)
-                        .tabItem {
-                            Label("Profile", systemImage: "person.fill")
-                        }
                 } else {
                     GuestProfileView()
                         .environmentObject(authManager)
                         .tag(3)
-                        .tabItem {
-                            Label("Profile", systemImage: "person.fill")
-                        }
                 }
             }
+            .tabViewStyle(.page(indexDisplayMode: .never))
             .onChange(of: selectedTab) { _ in
                 hapticFeedback.impactOccurred()
             }
-            .accentColor(themeColors.primary)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingSearch = true }) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(themeColors.primary)
+            .gesture(
+                DragGesture(minimumDistance: 10, coordinateSpace: .local)
+                    .onChanged { value in
+                        dragOffset = value.translation.width
+                    }
+                    .onEnded { value in
+                        let threshold: CGFloat = 30
+                        let maxTab = 3 // 4 tabs total (0-3)
+
+                        if value.translation.width < -threshold {
+                            // Swiped left - go to next tab
+                            if selectedTab < maxTab {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    selectedTab += 1
+                                }
+                            }
+                        } else if value.translation.width > threshold {
+                            // Swiped right - go to previous tab
+                            if selectedTab > 0 {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    selectedTab -= 1
+                                }
+                            }
+                        }
+
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            dragOffset = 0
+                        }
+                    }
+            )
+            .edgesIgnoringSafeArea(.bottom)
+
+            // Custom Frosted Glass Tab Bar
+            VStack(spacing: 0) {
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+
+                HStack(spacing: 0) {
+                    CustomTabButton(icon: "house.fill", label: "Home", isSelected: selectedTab == 0) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedTab = 0
+                        }
+                    }
+
+                    CustomTabButton(icon: "flame.fill", label: "Activity", isSelected: selectedTab == 1) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedTab = 1
+                        }
+                    }
+
+                    CustomTabButton(icon: "books.vertical.fill", label: "Library", isSelected: selectedTab == 2) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedTab = 2
+                        }
+                    }
+
+                    CustomTabButton(icon: "person.fill", label: "Profile", isSelected: selectedTab == 3) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedTab = 3
+                        }
                     }
                 }
+                .padding(.top, 8)
+                .padding(.bottom, 8)
             }
-            .sheet(isPresented: $showingSearch) {
-                UserSearchView()
-                    .environmentObject(authManager)
-            }
+            .background(.ultraThinMaterial)
+            .edgesIgnoringSafeArea(.bottom)
 
             // Login prompt overlay for guest users trying to post
             if authManager.isGuestMode {
@@ -94,5 +135,43 @@ struct MainTabView: View {
                 .allowsHitTesting(false)
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingSearch = true }) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(themeColors.primary)
+                }
+            }
+        }
+        .sheet(isPresented: $showingSearch) {
+            UserSearchView()
+                .environmentObject(authManager)
+        }
+    }
+}
+
+// MARK: - Custom Tab Button
+struct CustomTabButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+    @Environment(\.themeColors) var themeColors
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 22))
+                    .foregroundColor(isSelected ? themeColors.primary : themeColors.textSecondary)
+
+                Text(label)
+                    .font(.system(size: 10))
+                    .foregroundColor(isSelected ? themeColors.primary : themeColors.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
