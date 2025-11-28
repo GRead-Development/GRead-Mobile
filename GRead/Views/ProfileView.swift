@@ -10,9 +10,8 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
-    @State private var stats: UserStats?
+    @StateObject var dashboardManager = DashboardManager.shared
     @State private var showStatsView = false
-    @State private var isLoadingStats = false
     @State private var statsLoadError: String?
     @State private var showNotifications = false
     @ObservedObject var themeManager = ThemeManager.shared
@@ -63,7 +62,7 @@ struct ProfileView: View {
                                 .padding(.horizontal)
                                 .padding(.top, 16)
 
-                            if let stats = stats {
+                            if let stats = dashboardManager.stats {
                                 VStack(spacing: 12) {
                                     HStack(spacing: 12) {
                                         ProfileStatCard(
@@ -120,7 +119,7 @@ struct ProfileView: View {
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity)
-                            } else if isLoadingStats {
+                            } else if dashboardManager.isLoading {
                                 ProgressView()
                                     .padding()
                             }
@@ -465,15 +464,8 @@ struct ProfileView: View {
         guard let userId = authManager.currentUser?.id else { return }
 
         Task {
-            isLoadingStats = true
             statsLoadError = nil
-            do {
-                stats = try await APIManager.shared.getUserStats(userId: userId)
-            } catch {
-                print("Failed to load user stats: \(error)")
-                statsLoadError = "Failed to load stats. Please try again later."
-            }
-            isLoadingStats = false
+            await dashboardManager.loadDashboardIfNeeded(userId: userId)
         }
     }
 }

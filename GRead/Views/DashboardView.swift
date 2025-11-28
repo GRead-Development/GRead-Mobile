@@ -11,15 +11,12 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
-    @State private var stats: UserStats?
-    @State private var recentActivity: [Activity] = []
-    @State private var libraryItems: [LibraryItem] = []
-    @State private var achievements: [Achievement] = []
-    @State private var isLoading = true
+    @StateObject var dashboardManager = DashboardManager.shared
+    @StateObject var libraryManager = LibraryManager.shared
     @State private var refreshID = UUID()
 
     var currentlyReading: [LibraryItem] {
-        libraryItems.filter { $0.status == "reading" }.prefix(3).map { $0 }
+        libraryManager.libraryItems.filter { $0.status == "reading" }.prefix(3).map { $0 }
     }
 
     var body: some View {
@@ -30,7 +27,7 @@ struct DashboardView: View {
                     welcomeHeader
 
                     // Quick Stats Grid
-                    if let stats = stats {
+                    if let stats = dashboardManager.stats {
                         quickStatsGrid(stats: stats)
                     }
 
@@ -40,12 +37,12 @@ struct DashboardView: View {
                     }
 
                     // Recent Activity Preview
-                    if !recentActivity.isEmpty {
+                    if !dashboardManager.recentActivity.isEmpty {
                         recentActivitySection
                     }
 
                     // Recent Achievements
-                    if !achievements.isEmpty {
+                    if !dashboardManager.achievements.isEmpty {
                         recentAchievementsSection
                     }
 
@@ -59,7 +56,7 @@ struct DashboardView: View {
                 await loadAllData()
             }
             .task {
-                await loadAllData()
+                await loadAllDataIfNeeded()
             }
             .onChange(of: authManager.currentUser?.id) { _ in
                 Task {
@@ -67,7 +64,7 @@ struct DashboardView: View {
                 }
             }
             .overlay {
-                if isLoading {
+                if dashboardManager.isLoading || libraryManager.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(themeColors.background.opacity(0.8))
@@ -220,7 +217,7 @@ struct DashboardView: View {
             .padding(.horizontal)
 
             VStack(spacing: 8) {
-                ForEach(recentActivity.prefix(3), id: \.id) { activity in
+                ForEach(dashboardManager.recentActivity.prefix(3), id: \.id) { activity in
                     CompactActivityCard(activity: activity)
                 }
             }
@@ -248,7 +245,7 @@ struct DashboardView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(achievements.prefix(5), id: \.id) { achievement in
+                    ForEach(dashboardManager.achievements.prefix(5), id: \.id) { achievement in
                         CompactAchievementCard(achievement: achievement)
                     }
                 }
@@ -258,106 +255,29 @@ struct DashboardView: View {
     }
 
     // MARK: - Data Loading
-    private func loadAllData() async {
-        await MainActor.run {
-            isLoading = true
-        }
+    private func loadAllDataIfNeeded() async {
+        guard let userId = authManager.currentUser?.id else { return }
 
-        guard let userId = authManager.currentUser?.id else {
-            await MainActor.run {
-                isLoading = false
-            }
-            return
-        }
+        async let dashboardTask = dashboardManager.loadDashboardIfNeeded(userId: userId)
+        async let libraryTask = libraryManager.loadLibraryIfNeeded()
 
-        async let statsTask = loadStats(userId: userId)
-        async let activityTask = loadRecentActivity()
-        async let libraryTask = loadLibrary()
-        async let achievementsTask = loadAchievements(userId: userId)
-
-        _ = await [statsTask, activityTask, libraryTask, achievementsTask]
+        _ = await [dashboardTask, libraryTask]
 
         await MainActor.run {
-            isLoading = false
             refreshID = UUID()
         }
     }
 
-    private func loadStats(userId: Int) async {
-        do {
-            let loadedStats = try await APIManager.shared.getUserStats(userId: userId)
-            await MainActor.run {
-                stats = loadedStats
-            }
-        } catch is CancellationError {
-            // Task was cancelled - this is normal, don't log
-            return
-        } catch {
-            // Don't log cancelled requests (URLError code -999)
-            if let urlError = error as? URLError, urlError.code == .cancelled {
-                return
-            }
-            print("Failed to load stats: \(error)")
-        }
-    }
+    private func loadAllData() async {
+        guard let userId = authManager.currentUser?.id else { return }
 
-    private func loadRecentActivity() async {
-        do {
-            let response: ActivityResponse = try await APIManager.shared.request(
-                endpoint: "/activity?per_page=5&page=1",
-                authenticated: false
-            )
-            await MainActor.run {
-                recentActivity = response.activities
-            }
-        } catch is CancellationError {
-            // Task was cancelled - this is normal, don't log
-            return
-        } catch {
-            // Don't log cancelled requests (URLError code -999)
-            if let urlError = error as? URLError, urlError.code == .cancelled {
-                return
-            }
-            print("Failed to load activity: \(error)")
-        }
-    }
+        async let dashboardTask = dashboardManager.loadDashboard(userId: userId)
+        async let libraryTask = libraryManager.loadLibrary()
 
-    private func loadLibrary() async {
-        do {
-            let items: [LibraryItem] = try await APIManager.shared.customRequest(
-                endpoint: "/library",
-                authenticated: true
-            )
-            await MainActor.run {
-                libraryItems = items
-            }
-        } catch is CancellationError {
-            // Task was cancelled - this is normal, don't log
-            return
-        } catch {
-            // Don't log cancelled requests (URLError code -999)
-            if let urlError = error as? URLError, urlError.code == .cancelled {
-                return
-            }
-            print("Failed to load library: \(error)")
-        }
-    }
+        _ = await [dashboardTask, libraryTask]
 
-    private func loadAchievements(userId: Int) async {
-        do {
-            let response = try await APIManager.shared.getUserAchievements(userId: userId, filter: "unlocked")
-            await MainActor.run {
-                achievements = response.achievements.sorted(by: { $0.dateUnlocked ?? "" > $1.dateUnlocked ?? "" })
-            }
-        } catch is CancellationError {
-            // Task was cancelled - this is normal, don't log
-            return
-        } catch {
-            // Don't log cancelled requests (URLError code -999)
-            if let urlError = error as? URLError, urlError.code == .cancelled {
-                return
-            }
-            print("Failed to load achievements: \(error)")
+        await MainActor.run {
+            refreshID = UUID()
         }
     }
 }

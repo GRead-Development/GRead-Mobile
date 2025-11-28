@@ -195,8 +195,9 @@ class AuthManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "jwtToken")
         UserDefaults.standard.removeObject(forKey: "userId")
 
-        // Clear library cache on logout
+        // Clear caches on logout
         LibraryManager.shared.clearCache()
+        DashboardManager.shared.clearCache()
     }
     
     func fetchCurrentUser() async throws {

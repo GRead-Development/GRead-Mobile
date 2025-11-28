@@ -11,7 +11,10 @@ class LibraryManager: ObservableObject {
 
     private var hasLoadedOnce = false
 
-    private init() {}
+    private init() {
+        // Load cached library from UserDefaults on initialization
+        loadFromCache()
+    }
 
     /// Load library from server (only if not already loaded)
     func loadLibraryIfNeeded() async {
@@ -45,6 +48,9 @@ class LibraryManager: ObservableObject {
                 hasLoadedOnce = true
                 isLoading = false
                 print("✅ Successfully loaded \(items.count) items")
+
+                // Save to cache
+                saveToCache()
             }
         } catch is CancellationError {
             await MainActor.run {
@@ -109,5 +115,33 @@ class LibraryManager: ObservableObject {
         libraryItems = []
         hasLoadedOnce = false
         lastLoadTime = nil
+
+        // Remove from UserDefaults
+        UserDefaults.standard.removeObject(forKey: "cachedLibraryItems")
+        UserDefaults.standard.removeObject(forKey: "cachedLibraryLoadTime")
+    }
+
+    // MARK: - Persistence
+
+    private func saveToCache() {
+        if let encoded = try? JSONEncoder().encode(libraryItems) {
+            UserDefaults.standard.set(encoded, forKey: "cachedLibraryItems")
+        }
+        if let lastLoadTime = lastLoadTime {
+            UserDefaults.standard.set(lastLoadTime, forKey: "cachedLibraryLoadTime")
+        }
+    }
+
+    private func loadFromCache() {
+        if let data = UserDefaults.standard.data(forKey: "cachedLibraryItems"),
+           let decoded = try? JSONDecoder().decode([LibraryItem].self, from: data) {
+            libraryItems = decoded
+            hasLoadedOnce = true
+            print("📚 Loaded \(decoded.count) items from cache")
+        }
+
+        if let cachedTime = UserDefaults.standard.object(forKey: "cachedLibraryLoadTime") as? Date {
+            lastLoadTime = cachedTime
+        }
     }
 }
