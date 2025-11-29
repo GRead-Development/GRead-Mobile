@@ -6,6 +6,7 @@ struct LibraryView: View {
     @ObservedObject var libraryManager = LibraryManager.shared
     @State private var showAddBook = false
     @State private var showISBNImport = false
+    @State private var showBarcodeScanner = false
     @State private var searchText = ""
     @State private var showCompleted = false
     @State private var listRefreshID = UUID()
@@ -117,8 +118,11 @@ struct LibraryView: View {
             .navigationTitle("My Library")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button(action: { showBarcodeScanner = true }) {
+                        Image(systemName: "barcode.viewfinder")
+                    }
                     Button(action: { showISBNImport = true }) {
-                        Image(systemName: "barcode")
+                        Image(systemName: "textformat.123")
                     }
                     Button(action: { showAddBook = true }) {
                         Image(systemName: "plus")
@@ -140,6 +144,10 @@ struct LibraryView: View {
                     }
                 })
                 .environmentObject(authManager)
+            }
+            .fullScreenCover(isPresented: $showBarcodeScanner) {
+                BarcodeScannerView()
+                    .environmentObject(authManager)
             }
             .task {
                 await libraryManager.loadLibraryIfNeeded()

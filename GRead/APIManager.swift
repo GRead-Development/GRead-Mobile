@@ -1,5 +1,41 @@
 import Foundation
 
+// MARK: - OpenLibrary API Models
+
+struct OpenLibraryBook: Codable {
+    let title: String
+    let authors: [OpenLibraryAuthor]?
+    let publishers: [OpenLibraryPublisher]?
+    let publish_date: String?
+    let number_of_pages: Int?
+    let cover: OpenLibraryCover?
+    let identifiers: OpenLibraryIdentifiers?
+    let excerpts: [OpenLibraryExcerpt]?
+
+    struct OpenLibraryAuthor: Codable {
+        let name: String
+    }
+
+    struct OpenLibraryPublisher: Codable {
+        let name: String
+    }
+
+    struct OpenLibraryCover: Codable {
+        let small: String?
+        let medium: String?
+        let large: String?
+    }
+
+    struct OpenLibraryIdentifiers: Codable {
+        let isbn_13: [String]?
+        let isbn_10: [String]?
+    }
+
+    struct OpenLibraryExcerpt: Codable {
+        let text: String?
+    }
+}
+
 // MARK: - API Manager for handling all API requests to the GRead backend
 class APIManager {
     static let shared = APIManager()
@@ -676,6 +712,105 @@ class APIManager {
             authenticated: true
         )
         return response.data
+    }
+
+    // MARK: - Book & Barcode Scanning
+
+    /// Search for a book by ISBN in the GRead database
+    func searchBookByISBN(isbn: String) async throws -> Book {
+        Logger.debug("Searching GRead API for ISBN: \(isbn)")
+        Logger.debug("Full URL: \(customBaseURL)/books/isbn?isbn=\(isbn)")
+
+        do {
+            // This endpoint returns Book directly, not wrapped in APIResponse
+            let book: Book = try await customRequest(
+                endpoint: "/books/isbn?isbn=\(isbn)",
+                method: "GET",
+                authenticated: true
+            )
+            Logger.debug("GRead API response: Book found with ID \(book.id), title: \(book.title)")
+            return book
+        } catch {
+            Logger.error("GRead API error searching for ISBN \(isbn): \(error)")
+            throw error
+        }
+    }
+
+    /// Import a book from OpenLibrary data
+    func importBookFromOpenLibrary(openLibraryBookData: OpenLibraryBook) async throws -> Book {
+        Logger.debug("Preparing to import book from OpenLibrary: \(openLibraryBookData.title)")
+
+        var body: [String: Any] = [
+            "title": openLibraryBookData.title
+        ]
+
+        if let authors = openLibraryBookData.authors, !authors.isEmpty {
+            let authorNames = authors.map { $0.name }.joined(separator: ", ")
+            body["author"] = authorNames
+            Logger.debug("Authors: \(authorNames)")
+        }
+
+        // Use excerpts as description if available
+        if let excerpts = openLibraryBookData.excerpts, !excerpts.isEmpty, let firstExcerpt = excerpts.first?.text {
+            body["description"] = firstExcerpt
+            Logger.debug("Description from excerpt: \(firstExcerpt.prefix(100))...")
+        }
+
+        if let pageCount = openLibraryBookData.number_of_pages {
+            body["page_count"] = pageCount
+            Logger.debug("Page count: \(pageCount)")
+        }
+
+        // Use the largest available cover image
+        if let cover = openLibraryBookData.cover {
+            if let large = cover.large {
+                body["cover_url"] = large
+                Logger.debug("Using large cover: \(large)")
+            } else if let medium = cover.medium {
+                body["cover_url"] = medium
+                Logger.debug("Using medium cover: \(medium)")
+            } else if let small = cover.small {
+                body["cover_url"] = small
+                Logger.debug("Using small cover: \(small)")
+            }
+        }
+
+        // Use ISBN-13 if available, otherwise ISBN-10
+        if let identifiers = openLibraryBookData.identifiers {
+            if let isbn13 = identifiers.isbn_13?.first {
+                body["isbn"] = isbn13
+                Logger.debug("ISBN-13: \(isbn13)")
+            } else if let isbn10 = identifiers.isbn_10?.first {
+                body["isbn"] = isbn10
+                Logger.debug("ISBN-10: \(isbn10)")
+            }
+        }
+
+        Logger.debug("Sending import request to GRead API with data: \(body)")
+        let response: APIResponse<Book> = try await customRequest(
+            endpoint: "/books/import",
+            method: "POST",
+            body: body,
+            authenticated: true
+        )
+        Logger.debug("Book imported successfully with ID: \(response.data.id)")
+        return response.data
+    }
+
+    /// Add a book to the user's library
+    func addBookToLibrary(bookId: Int, status: String, currentPage: Int) async throws {
+        let body: [String: Any] = [
+            "book_id": bookId,
+            "status": status,
+            "current_page": currentPage
+        ]
+
+        let _: APIResponse<EmptyResponse> = try await customRequest(
+            endpoint: "/library/add",
+            method: "POST",
+            body: body,
+            authenticated: true
+        )
     }
 }
 
