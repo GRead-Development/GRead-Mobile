@@ -635,6 +635,17 @@ class APIManager {
         return Array(response.data.values)
     }
 
+    /// Get another user's extended profile fields
+    func getUserXProfileFields(userId: Int) async throws -> [XProfileField] {
+        // This endpoint returns data directly without APIResponse wrapper
+        let response: [String: XProfileField] = try await customRequest(
+            endpoint: "/members/\(userId)/xprofile",
+            method: "GET",
+            authenticated: true
+        )
+        return Array(response.values)
+    }
+
     /// Update extended profile fields
     func updateXProfileFields(fields: [XProfileFieldUpdate]) async throws -> [XProfileField] {
         let fieldsData = fields.map { field -> [String: Any] in

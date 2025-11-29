@@ -8,6 +8,8 @@ struct UserDetailView: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var user: User?
+    @State private var userProfile: UserProfile?
+    @State private var xprofileFields: [XProfileField] = []
     @State private var userStats: UserStats?
     @State private var friends: [User] = []
     @State private var isLoading = true
@@ -18,16 +20,15 @@ struct UserDetailView: View {
     @State private var isLoadingFriendAction = false
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
+        ScrollView {
+            VStack(spacing: 0) {
                     if isLoading {
                         ProgressView()
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let user = user {
                         // Header
                         VStack(spacing: 12) {
-                            AsyncImage(url: URL(string: user.avatarUrl)) { image in
+                            AsyncImage(url: URL(string: userProfile?.avatarUrl ?? user.avatarUrl)) { image in
                                 image.resizable()
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
@@ -38,12 +39,12 @@ struct UserDetailView: View {
                             .clipShape(Circle())
 
                             VStack(spacing: 4) {
-                                Text(user.name.decodingHTMLEntities)
+                                Text(userProfile?.displayName ?? user.name.decodingHTMLEntities)
                                     .font(.title2)
                                     .fontWeight(.bold)
                                     .foregroundColor(themeColors.textPrimary)
 
-                                if let username = user.userLogin {
+                                if let username = userProfile?.username ?? user.userLogin {
                                     Text("@\(username.decodingHTMLEntities)")
                                         .foregroundColor(themeColors.textSecondary)
                                 }
@@ -51,6 +52,7 @@ struct UserDetailView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
+                        .background(themeColors.headerBackground)
 
                         // Friend Action Button
                         if authManager.isAuthenticated && authManager.currentUser?.id != userId {
@@ -58,8 +60,217 @@ struct UserDetailView: View {
                                 .padding(.horizontal)
                         }
 
+                        // Profile Info Section
+                        if let profile = userProfile {
+                            VStack(spacing: 16) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("About")
+                                        .font(.headline)
+                                        .foregroundColor(themeColors.textPrimary)
+                                        .padding(.horizontal)
+
+                                    // Bio
+                                    if let bio = profile.bio, !bio.isEmpty {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "text.quote")
+                                                .foregroundColor(themeColors.primary)
+                                                .frame(width: 30)
+                                            Text(bio)
+                                                .font(.body)
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Spacer()
+                                        }
+                                        .padding()
+                                        .background(themeColors.cardBackground)
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(themeColors.border, lineWidth: 1)
+                                        )
+                                        .padding(.horizontal)
+                                    }
+
+                                    // Website
+                                    if let website = profile.website, !website.isEmpty {
+                                        Link(destination: URL(string: website) ?? URL(string: "https://example.com")!) {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: "link")
+                                                    .foregroundColor(themeColors.primary)
+                                                    .frame(width: 30)
+                                                Text(website)
+                                                    .font(.body)
+                                                    .foregroundColor(themeColors.primary)
+                                                Spacer()
+                                                Image(systemName: "arrow.up.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(themeColors.textSecondary)
+                                            }
+                                            .padding()
+                                            .background(themeColors.cardBackground)
+                                            .cornerRadius(8)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(themeColors.border, lineWidth: 1)
+                                            )
+                                        }
+                                        .padding(.horizontal)
+                                    }
+
+                                    // Location
+                                    if let location = profile.location, !location.isEmpty {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "location.fill")
+                                                .foregroundColor(themeColors.primary)
+                                                .frame(width: 30)
+                                            Text(location)
+                                                .font(.body)
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Spacer()
+                                        }
+                                        .padding()
+                                        .background(themeColors.cardBackground)
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(themeColors.border, lineWidth: 1)
+                                        )
+                                        .padding(.horizontal)
+                                    }
+
+                                    // Social Stats
+                                    if let social = profile.social {
+                                        HStack(spacing: 12) {
+                                            VStack(spacing: 4) {
+                                                Text("\(social.followersCount)")
+                                                    .font(.title3)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(themeColors.textPrimary)
+                                                Text("Followers")
+                                                    .font(.caption)
+                                                    .foregroundColor(themeColors.textSecondary)
+                                            }
+                                            .frame(maxWidth: .infinity)
+
+                                            Divider()
+
+                                            VStack(spacing: 4) {
+                                                Text("\(social.followingCount)")
+                                                    .font(.title3)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(themeColors.textPrimary)
+                                                Text("Following")
+                                                    .font(.caption)
+                                                    .foregroundColor(themeColors.textSecondary)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                        }
+                                        .padding()
+                                        .background(themeColors.cardBackground)
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(themeColors.border, lineWidth: 1)
+                                        )
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 16)
+                        }
+
+                        // Extended Profile Fields
+                        if !xprofileFields.isEmpty {
+                            VStack(spacing: 16) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Reading Preferences")
+                                        .font(.headline)
+                                        .foregroundColor(themeColors.textPrimary)
+                                        .padding(.horizontal)
+
+                                    ForEach(xprofileFields.filter { $0.name != "Name" && $0.name != "Bio" }) { field in
+                                        if let value = field.value, !value.isEmpty {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: iconForFieldType(field.type))
+                                                    .foregroundColor(themeColors.primary)
+                                                    .frame(width: 30)
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(field.name)
+                                                        .font(.caption)
+                                                        .fontWeight(.semibold)
+                                                        .foregroundColor(themeColors.textSecondary)
+                                                    Text(value)
+                                                        .font(.body)
+                                                        .foregroundColor(themeColors.textPrimary)
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding()
+                                            .background(themeColors.cardBackground)
+                                            .cornerRadius(8)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(themeColors.border, lineWidth: 1)
+                                            )
+                                            .padding(.horizontal)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 16)
+                        }
+
                         // Stats Section
-                        if let stats = userStats {
+                        if let profileStats = userProfile?.stats {
+                            VStack(spacing: 12) {
+                                Text("Reading Stats")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal)
+
+                                VStack(spacing: 12) {
+                                    HStack(spacing: 12) {
+                                        StatInfoCard(
+                                            value: String(profileStats.booksCompleted),
+                                            label: "Books Read",
+                                            icon: "books.vertical.fill",
+                                            color: themeColors.primary
+                                        )
+                                        StatInfoCard(
+                                            value: String(profileStats.pagesRead),
+                                            label: "Pages Read",
+                                            icon: "doc.text.fill",
+                                            color: themeColors.secondary
+                                        )
+                                    }
+                                    HStack(spacing: 12) {
+                                        StatInfoCard(
+                                            value: String(profileStats.booksAdded),
+                                            label: "Books Added",
+                                            icon: "plus.circle.fill",
+                                            color: themeColors.accent
+                                        )
+                                        StatInfoCard(
+                                            value: String(profileStats.points),
+                                            label: "Points",
+                                            icon: "star.fill",
+                                            color: Color(hex: "#FFD700")
+                                        )
+                                    }
+                                    HStack(spacing: 12) {
+                                        StatInfoCard(
+                                            value: String(profileStats.approvedReports),
+                                            label: "Contributions",
+                                            icon: "checkmark.seal.fill",
+                                            color: themeColors.success
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                            .padding(.vertical, 12)
+                        } else if let stats = userStats {
                             VStack(spacing: 12) {
                                 Text("Reading Stats")
                                     .font(.headline)
@@ -161,8 +372,9 @@ struct UserDetailView: View {
                             }
                         }
 
-                        Spacer()
-                            .frame(height: 20)
+                        // Bottom padding to prevent tab bar overlap
+                        Color.clear
+                            .frame(height: 80)
                     } else if let error = error {
                         VStack(spacing: 12) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -176,14 +388,12 @@ struct UserDetailView: View {
                             .foregroundColor(themeColors.primary)
                         }
                     }
-                }
-                .frame(maxWidth: .infinity)
             }
-            .navigationTitle("User Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                loadUserData()
-            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(themeColors.background)
+        .onAppear {
+            loadUserData()
         }
     }
 
@@ -224,16 +434,49 @@ struct UserDetailView: View {
                     authenticated: false
                 )
 
-                // Fetch user stats
-                let stats = try await APIManager.shared.getUserStats(userId: userId)
+                // Try to fetch user profile with full info (optional, may fail with 500)
+                var profile: UserProfile?
+                do {
+                    profile = try await APIManager.shared.getUserProfile(userId: userId)
+                } catch {
+                    Logger.error("Failed to load full profile for user \(userId): \(error)")
+                    // Continue without full profile
+                }
 
-                // Fetch friends
-                let friendsResponse = try await APIManager.shared.getFriends(userId: userId)
+                // Try to fetch extended profile fields (optional, may fail)
+                var fields: [XProfileField] = []
+                do {
+                    fields = try await APIManager.shared.getUserXProfileFields(userId: userId)
+                } catch {
+                    Logger.error("Failed to load xprofile fields for user \(userId): \(error)")
+                    // Continue without xprofile fields
+                }
+
+                // Try to fetch user stats (optional, may fail)
+                var stats: UserStats?
+                do {
+                    stats = try await APIManager.shared.getUserStats(userId: userId)
+                } catch {
+                    Logger.error("Failed to load stats for user \(userId): \(error)")
+                    // Continue without stats
+                }
+
+                // Try to fetch friends (optional, may fail)
+                var friendsList: [User] = []
+                do {
+                    let friendsResponse = try await APIManager.shared.getFriends(userId: userId)
+                    friendsList = friendsResponse.friends
+                } catch {
+                    Logger.error("Failed to load friends for user \(userId): \(error)")
+                    // Continue without friends
+                }
 
                 await MainActor.run {
                     self.user = fetchedUser
+                    self.userProfile = profile
+                    self.xprofileFields = fields.sorted { $0.order ?? 0 < $1.order ?? 0 }
                     self.userStats = stats
-                    self.friends = friendsResponse.friends
+                    self.friends = friendsList
                     self.isLoading = false
 
                     // Check friend status if authenticated
@@ -317,6 +560,17 @@ struct UserDetailView: View {
                     Logger.error("Error removing friend: \(catchError)")
                 }
             }
+        }
+    }
+
+    private func iconForFieldType(_ type: String) -> String {
+        switch type {
+        case "textbox":
+            return "text.alignleft"
+        case "wp-biography":
+            return "doc.text"
+        default:
+            return "tag"
         }
     }
 }
