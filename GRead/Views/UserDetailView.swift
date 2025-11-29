@@ -6,6 +6,7 @@ struct UserDetailView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var userProfileManager = UserProfileManager.shared
 
     @State private var user: User?
     @State private var userProfile: UserProfile?
@@ -427,56 +428,14 @@ struct UserDetailView: View {
         error = nil
 
         Task {
-            do {
-                // Fetch user details (via members endpoint)
-                let fetchedUser: User = try await APIManager.shared.request(
-                    endpoint: "/members/\(userId)",
-                    authenticated: false
-                )
-
-                // Try to fetch user profile with full info (optional, may fail with 500)
-                var profile: UserProfile?
-                do {
-                    profile = try await APIManager.shared.getUserProfile(userId: userId)
-                } catch {
-                    Logger.error("Failed to load full profile for user \(userId): \(error)")
-                    // Continue without full profile
-                }
-
-                // Try to fetch extended profile fields (optional, may fail)
-                var fields: [XProfileField] = []
-                do {
-                    fields = try await APIManager.shared.getUserXProfileFields(userId: userId)
-                } catch {
-                    Logger.error("Failed to load xprofile fields for user \(userId): \(error)")
-                    // Continue without xprofile fields
-                }
-
-                // Try to fetch user stats (optional, may fail)
-                var stats: UserStats?
-                do {
-                    stats = try await APIManager.shared.getUserStats(userId: userId)
-                } catch {
-                    Logger.error("Failed to load stats for user \(userId): \(error)")
-                    // Continue without stats
-                }
-
-                // Try to fetch friends (optional, may fail)
-                var friendsList: [User] = []
-                do {
-                    let friendsResponse = try await APIManager.shared.getFriends(userId: userId)
-                    friendsList = friendsResponse.friends
-                } catch {
-                    Logger.error("Failed to load friends for user \(userId): \(error)")
-                    // Continue without friends
-                }
-
+            // Try to load from cache or fetch from API
+            if let cached = await userProfileManager.loadProfileIfNeeded(userId: userId) {
                 await MainActor.run {
-                    self.user = fetchedUser
-                    self.userProfile = profile
-                    self.xprofileFields = fields.sorted { $0.order ?? 0 < $1.order ?? 0 }
-                    self.userStats = stats
-                    self.friends = friendsList
+                    self.user = cached.user
+                    self.userProfile = cached.userProfile
+                    self.xprofileFields = cached.xprofileFields.sorted { $0.order ?? 0 < $1.order ?? 0 }
+                    self.userStats = cached.userStats
+                    self.friends = cached.friends
                     self.isLoading = false
 
                     // Check friend status if authenticated
@@ -484,11 +443,10 @@ struct UserDetailView: View {
                         checkFriendStatus()
                     }
                 }
-            } catch {
+            } else {
                 await MainActor.run {
                     self.error = "Failed to load user profile"
                     self.isLoading = false
-                    Logger.error("Error loading user data: \(error)")
                 }
             }
         }

@@ -199,6 +199,7 @@ class AuthManager: ObservableObject {
         LibraryManager.shared.clearCache()
         DashboardManager.shared.clearCache()
         ProfileManager.shared.clearCache()
+        UserProfileManager.shared.clearCache()
     }
     
     func fetchCurrentUser() async throws {
