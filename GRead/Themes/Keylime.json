@@ -1,0 +1,13 @@
+{
+  "id": "keylime-pie",
+  "name": "Keylime Pie",
+  "description": "Tangy and green.",
+  "primary_color": "#B6F500",
+  "secondary_color": "#A4DD00",
+  "accent_color": "#98CD00",
+  "background_color": "#FFFADC",
+  "unlock_requirement": {
+    "stat": "points",
+    "value": 10000
+  }
+}

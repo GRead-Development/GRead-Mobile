@@ -1,0 +1,13 @@
+{
+  "id": "sherbet",
+  "name": "Sherbet",
+  "description": "Yummy.",
+  "primary_color": "#F08787",
+  "secondary_color": "#FFC7A7",
+  "accent_color": "#FEE2AD",
+  "background_color": "#F8FAB4",
+  "unlock_requirement": {
+    "stat": "points",
+    "value": 10000
+  }
+}

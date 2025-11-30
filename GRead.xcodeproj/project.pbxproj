@@ -15,9 +15,33 @@
 		186C445F2EBDA2610054BCA4 /* GRead/Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GRead/Themes; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		18731B242EDC12BA006D63BA /* Exceptions for "GRead" folder in "GRead" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Themes/Keylime.json,
+			);
+			target = 186B444F2EBDA1610054BCA4 /* GRead */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		18731B252EDC12BA006D63BA /* Exceptions for "GRead" folder in "Compile Sources" phase from "GRead" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 186B444C2EBDA1610054BCA4 /* Sources */;
+			membershipExceptions = (
+				Themes/Keylime.json,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		186B44522EBDA1610054BCA4 /* GRead */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				18731B242EDC12BA006D63BA /* Exceptions for "GRead" folder in "GRead" target */,
+				18731B252EDC12BA006D63BA /* Exceptions for "GRead" folder in "Compile Sources" phase from "GRead" target */,
+			);
 			path = GRead;
 			sourceTree = "<group>";
 		};

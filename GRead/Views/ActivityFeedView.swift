@@ -99,7 +99,21 @@ struct ActivityFeedView: View {
                     }
                 }
                 .navigationTitle("Activity")
+                .navigationBarTitleDisplayMode(.large)
                 .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        if !authManager.isGuestMode {
+                            AsyncImage(url: URL(string: authManager.currentUser?.avatarUrl ?? "")) { image in
+                                image.resizable()
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .foregroundColor(themeColors.primary)
+                            }
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+                        }
+                    }
+
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
                             if authManager.isGuestMode {

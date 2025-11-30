@@ -12,7 +12,7 @@ struct BarcodeScannerView: View {
     @State private var errorMessage: String?
     @State private var showBookDetails = false
     @State private var foundBook: Book?
-    @State private var showImportSuccess = false
+    @State private var successMessage: String?
 
     var body: some View {
         NavigationView {
@@ -56,6 +56,20 @@ struct BarcodeScannerView: View {
                             .cornerRadius(8)
                             .padding(.bottom, 20)
                     }
+
+                    if let success = successMessage {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(success)
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                        }
+                        .padding()
+                        .background(.green.opacity(0.9))
+                        .cornerRadius(12)
+                        .padding(.bottom, 20)
+                    }
                 }
             }
             .navigationTitle("Scan Barcode")
@@ -93,13 +107,6 @@ struct BarcodeScannerView: View {
                     )
                     .environmentObject(authManager)
                 }
-            }
-            .alert("Book Added!", isPresented: $showImportSuccess) {
-                Button("OK") {
-                    dismiss()
-                }
-            } message: {
-                Text("The book has been added to your library.")
             }
         }
     }
@@ -204,9 +211,25 @@ struct BarcodeScannerView: View {
                 await LibraryManager.shared.loadLibrary()
 
                 await MainActor.run {
-                    Logger.debug("Showing success message")
+                    Logger.debug("Dismissing sheet and showing success message")
                     showBookDetails = false
-                    showImportSuccess = true
+
+                    // Small delay to ensure sheet is dismissed before resetting scanner
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        Logger.debug("Resetting scanner state for next scan")
+                        scannedCode = nil
+                        foundBook = nil
+                        isProcessing = false
+                        errorMessage = nil
+
+                        // Show success message
+                        successMessage = "Book added! Scan another?"
+
+                        // Auto-dismiss success message after 3 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            successMessage = nil
+                        }
+                    }
                 }
             } catch {
                 Logger.error("Failed to add book to library: \(error.localizedDescription)")

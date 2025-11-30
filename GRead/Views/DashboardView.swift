@@ -13,10 +13,32 @@ struct DashboardView: View {
     @Environment(\.themeColors) var themeColors
     @ObservedObject var dashboardManager = DashboardManager.shared
     @ObservedObject var libraryManager = LibraryManager.shared
+    @ObservedObject var profileManager = ProfileManager.shared
     @State private var refreshID = UUID()
+    @State private var showBarcodeScanner = false
+    @State private var selectedBook: LibraryItem?
+    @State private var showProgressEditor = false
 
     var currentlyReading: [LibraryItem] {
         libraryManager.libraryItems.filter { $0.status == "reading" }.prefix(3).map { $0 }
+    }
+
+    var closestAchievements: [Achievement] {
+        // Get unearned achievements sorted by progress percentage (highest first)
+        dashboardManager.achievements
+            .filter { achievement in
+                if let isUnlocked = achievement.isUnlocked, isUnlocked {
+                    return false // Skip already unlocked
+                }
+                return true
+            }
+            .sorted { achievement1, achievement2 in
+                let progress1 = achievement1.progress?.percentage ?? 0
+                let progress2 = achievement2.progress?.percentage ?? 0
+                return progress1 > progress2 // Higher progress first
+            }
+            .prefix(5)
+            .map { $0 }
     }
 
     var body: some View {
@@ -31,19 +53,17 @@ struct DashboardView: View {
                         quickStatsGrid(stats: stats)
                     }
 
+                    // Quick Actions
+                    quickActionsSection
+
                     // Currently Reading Section
                     if !currentlyReading.isEmpty {
                         currentlyReadingSection
                     }
 
-                    // Recent Activity Preview
-                    if !dashboardManager.recentActivity.isEmpty {
-                        recentActivitySection
-                    }
-
-                    // Recent Achievements
-                    if !dashboardManager.achievements.isEmpty {
-                        recentAchievementsSection
+                    // Closest Achievements (removed Recent Posts)
+                    if !closestAchievements.isEmpty {
+                        closestAchievementsSection
                     }
 
                     // Bottom padding to prevent tab bar overlap
@@ -72,6 +92,23 @@ struct DashboardView: View {
                         .background(themeColors.background.opacity(0.8))
                 }
             }
+            .fullScreenCover(isPresented: $showBarcodeScanner) {
+                BarcodeScannerView()
+                    .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showProgressEditor) {
+                if let book = selectedBook {
+                    ProgressEditorSheet(
+                        isPresented: $showProgressEditor,
+                        currentPage: book.currentPage,
+                        totalPages: book.book?.totalPages ?? 0,
+                        onSave: { newPage in
+                            updateProgress(item: book, currentPage: newPage)
+                            showProgressEditor = false
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -92,8 +129,8 @@ struct DashboardView: View {
 
                 Spacer()
 
-                // Avatar
-                AsyncImage(url: URL(string: authManager.currentUser?.avatarUrl ?? "")) { image in
+                // Avatar - uses profileManager for most up-to-date avatar
+                AsyncImage(url: URL(string: profileManager.userProfile?.avatarUrl ?? authManager.currentUser?.avatarUrl ?? "")) { image in
                     image.resizable()
                 } placeholder: {
                     Image(systemName: "person.circle.fill")
@@ -171,6 +208,49 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: - Quick Actions Section
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Quick Actions")
+                .font(.headline)
+                .foregroundColor(themeColors.textPrimary)
+                .padding(.horizontal)
+
+            HStack(spacing: 12) {
+                Button(action: {
+                    showBarcodeScanner = true
+                }) {
+                    HStack {
+                        Image(systemName: "barcode.viewfinder")
+                            .font(.title2)
+                            .foregroundColor(themeColors.primary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Scan Book")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(themeColors.textPrimary)
+                            Text("Add by barcode")
+                                .font(.caption)
+                                .foregroundColor(themeColors.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(themeColors.textSecondary)
+                    }
+                    .padding()
+                    .background(themeColors.cardBackground)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(themeColors.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal)
+        }
+    }
+
     // MARK: - Currently Reading Section
     private var currentlyReadingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -192,7 +272,13 @@ struct DashboardView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(currentlyReading, id: \.id) { item in
-                        CompactBookCard(item: item)
+                        CompactBookCard(
+                            item: item,
+                            onTap: {
+                                selectedBook = item
+                                showProgressEditor = true
+                            }
+                        )
                     }
                 }
                 .padding(.horizontal)
@@ -227,11 +313,11 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Recent Achievements Section
-    private var recentAchievementsSection: some View {
+    // MARK: - Closest Achievements Section
+    private var closestAchievementsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Recent Achievements")
+                Text("Almost There")
                     .font(.headline)
                     .foregroundColor(themeColors.textPrimary)
 
@@ -247,7 +333,7 @@ struct DashboardView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(dashboardManager.achievements.prefix(5), id: \.id) { achievement in
+                    ForEach(closestAchievements, id: \.id) { achievement in
                         CompactAchievementCard(achievement: achievement)
                     }
                 }
@@ -262,8 +348,9 @@ struct DashboardView: View {
 
         async let dashboardTask = dashboardManager.loadDashboardIfNeeded(userId: userId)
         async let libraryTask = libraryManager.loadLibraryIfNeeded()
+        async let profileTask = profileManager.loadProfileIfNeeded()
 
-        _ = await [dashboardTask, libraryTask]
+        _ = await [dashboardTask, libraryTask, profileTask]
 
         await MainActor.run {
             refreshID = UUID()
@@ -275,11 +362,27 @@ struct DashboardView: View {
 
         async let dashboardTask = dashboardManager.loadDashboard(userId: userId)
         async let libraryTask = libraryManager.loadLibrary()
+        async let profileTask = profileManager.loadProfile()
 
-        _ = await [dashboardTask, libraryTask]
+        _ = await [dashboardTask, libraryTask, profileTask]
 
         await MainActor.run {
             refreshID = UUID()
+        }
+    }
+
+    private func updateProgress(item: LibraryItem, currentPage: Int) {
+        Task {
+            do {
+                guard let bookId = item.book?.id else { return }
+                try await libraryManager.updateProgress(bookId: bookId, currentPage: currentPage)
+
+                await MainActor.run {
+                    refreshID = UUID()
+                }
+            } catch {
+                Logger.error("Failed to update progress: \(error.localizedDescription)")
+            }
         }
     }
 }
@@ -329,7 +432,13 @@ struct QuickStatCard: View {
 // MARK: - Compact Book Card
 struct CompactBookCard: View {
     let item: LibraryItem
+    let onTap: (() -> Void)?
     @Environment(\.themeColors) var themeColors
+
+    init(item: LibraryItem, onTap: (() -> Void)? = nil) {
+        self.item = item
+        self.onTap = onTap
+    }
 
     var progressPercentage: Double {
         guard let totalPages = item.book?.totalPages, totalPages > 0 else { return 0 }
@@ -337,7 +446,10 @@ struct CompactBookCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Button(action: {
+            onTap?()
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
             // Book Cover
             if let coverUrl = item.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
                 let _ = print("🖼️ Dashboard loading cover for \(item.book?.title ?? "Unknown"): \(coverUrl)")
@@ -406,6 +518,9 @@ struct CompactBookCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(themeColors.border, lineWidth: 1)
         )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(onTap == nil)
     }
 }
 
