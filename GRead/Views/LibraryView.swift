@@ -1,5 +1,12 @@
 import SwiftUI
 
+enum LibrarySortOption: String, CaseIterable {
+    case titleAscending = "Title (A-Z)"
+    case titleDescending = "Title (Z-A)"
+    case percentageCompleted = "Progress"
+    case recentlyModified = "Recently Added"
+}
+
 struct LibraryView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
@@ -10,6 +17,7 @@ struct LibraryView: View {
     @State private var searchText = ""
     @State private var showCompleted = false
     @State private var listRefreshID = UUID()
+    @State private var sortOption: LibrarySortOption = .recentlyModified
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
@@ -27,13 +35,45 @@ struct LibraryView: View {
             : items.filter { $0.status == "reading" }
 
         // Apply search filter if needed
+        let searchFiltered: [LibraryItem]
         if searchText.isEmpty {
-            return statusFiltered
+            searchFiltered = statusFiltered
+        } else {
+            searchFiltered = statusFiltered.filter { item in
+                item.book?.title.localizedCaseInsensitiveContains(searchText) ?? false ||
+                item.book?.author?.localizedCaseInsensitiveContains(searchText) ?? false
+            }
         }
-        return statusFiltered.filter { item in
-            item.book?.title.localizedCaseInsensitiveContains(searchText) ?? false ||
-            item.book?.author?.localizedCaseInsensitiveContains(searchText) ?? false
+
+        // Apply sorting
+        let sorted = searchFiltered.sorted { item1, item2 in
+            switch sortOption {
+            case .titleAscending:
+                let title1 = item1.book?.title ?? ""
+                let title2 = item2.book?.title ?? ""
+                return title1.localizedCaseInsensitiveCompare(title2) == .orderedAscending
+            case .titleDescending:
+                let title1 = item1.book?.title ?? ""
+                let title2 = item2.book?.title ?? ""
+                return title1.localizedCaseInsensitiveCompare(title2) == .orderedDescending
+            case .percentageCompleted:
+                let progress1 = calculateProgress(item1)
+                let progress2 = calculateProgress(item2)
+                return progress1 > progress2 // Higher progress first
+            case .recentlyModified:
+                // Most recently added first
+                let date1 = item1.dateAdded ?? ""
+                let date2 = item2.dateAdded ?? ""
+                return date1 > date2
+            }
         }
+
+        return sorted
+    }
+
+    private func calculateProgress(_ item: LibraryItem) -> Double {
+        guard let totalPages = item.book?.totalPages, totalPages > 0 else { return 0 }
+        return Double(item.currentPage) / Double(totalPages)
     }
 
     var body: some View {
@@ -74,15 +114,41 @@ struct LibraryView: View {
 
                             HStack {
                                 Toggle(isOn: $showCompleted) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: showCompleted ? "checkmark.square.fill" : "square")
-                                            .foregroundColor(showCompleted ? themeColors.success : themeColors.textSecondary)
-                                        Text("Show Completed Books")
-                                            .font(.subheadline)
-                                            .foregroundColor(themeColors.textPrimary)
-                                    }
+                                    Text("Show Completed Books")
+                                        .font(.subheadline)
+                                        .foregroundColor(themeColors.textPrimary)
                                 }
                                 .toggleStyle(SwitchToggleStyle(tint: themeColors.success))
+
+                                Spacer()
+
+                                // Sort Menu
+                                Menu {
+                                    ForEach(LibrarySortOption.allCases, id: \.self) { option in
+                                        Button(action: {
+                                            sortOption = option
+                                        }) {
+                                            HStack {
+                                                Text(option.rawValue)
+                                                if sortOption == option {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "arrow.up.arrow.down")
+                                            .font(.caption)
+                                        Text("Sort")
+                                            .font(.caption)
+                                    }
+                                    .foregroundColor(themeColors.primary)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(themeColors.primary.opacity(0.1))
+                                    .cornerRadius(8)
+                                }
                             }
                             .padding(.horizontal)
                         }
