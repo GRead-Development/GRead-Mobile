@@ -52,6 +52,16 @@ class LibraryManager: ObservableObject {
                 isLoading = false
                 print("✅ Successfully loaded \(items.count) items")
 
+                // Debug: Log cover URLs
+                for item in items {
+                    if let book = item.book {
+                        print("📚 Book: \(book.title)")
+                        print("   API Cover URL: \(book.coverUrl ?? "nil")")
+                        print("   Effective Cover URL: \(book.effectiveCoverUrl ?? "nil")")
+                        print("   ISBN: \(book.isbn ?? "nil")")
+                    }
+                }
+
                 // Save to cache
                 saveToCache()
             }

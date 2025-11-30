@@ -354,7 +354,7 @@ struct BookDetailSheet: View {
             ScrollView {
                 VStack(spacing: 16) {
                     // Book cover
-                    if let coverUrl = book.coverUrl, let url = URL(string: coverUrl) {
+                    if let coverUrl = book.effectiveCoverUrl, let url = URL(string: coverUrl) {
                         AsyncImage(url: url) { image in
                             image
                                 .resizable()

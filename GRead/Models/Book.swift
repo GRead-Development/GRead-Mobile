@@ -18,4 +18,21 @@ struct Book: Codable, Identifiable {
         case isbn
         case publishedDate = "published_date"
     }
+
+    /// Get the effective cover URL - use API provided URL, or generate from ISBN via Open Library
+    var effectiveCoverUrl: String? {
+        // If API provides a cover URL, use it
+        if let coverUrl = coverUrl, !coverUrl.isEmpty {
+            return coverUrl
+        }
+
+        // Otherwise, generate Open Library cover URL from ISBN
+        if let isbn = isbn, !isbn.isEmpty {
+            // Clean the ISBN (remove hyphens)
+            let cleanISBN = isbn.replacingOccurrences(of: "-", with: "")
+            return "https://covers.openlibrary.org/b/isbn/\(cleanISBN)-M.jpg"
+        }
+
+        return nil
+    }
 }

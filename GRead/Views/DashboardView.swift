@@ -339,7 +339,8 @@ struct CompactBookCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Book Cover
-            if let coverUrl = item.book?.coverUrl, let url = URL(string: coverUrl) {
+            if let coverUrl = item.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                let _ = print("🖼️ Dashboard loading cover for \(item.book?.title ?? "Unknown"): \(coverUrl)")
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
@@ -352,7 +353,8 @@ struct CompactBookCard: View {
                             .frame(width: 100, height: 140)
                             .clipped()
                             .cornerRadius(8)
-                    case .failure:
+                    case .failure(let error):
+                        let _ = print("❌ Dashboard failed to load cover for \(item.book?.title ?? "Unknown"): \(error)")
                         Image(systemName: "book.fill")
                             .font(.system(size: 40))
                             .foregroundColor(themeColors.textSecondary)

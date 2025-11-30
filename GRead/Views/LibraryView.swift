@@ -208,7 +208,8 @@ struct LibraryItemCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 // Book Cover
-                if let coverUrl = libraryItem.book?.coverUrl, let url = URL(string: coverUrl) {
+                if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                    let _ = print("🖼️ Loading cover for \(libraryItem.book?.title ?? "Unknown"): \(coverUrl)")
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -221,7 +222,8 @@ struct LibraryItemCard: View {
                                 .frame(width: 60, height: 90)
                                 .clipped()
                                 .cornerRadius(6)
-                        case .failure:
+                        case .failure(let error):
+                            let _ = print("❌ Failed to load cover for \(libraryItem.book?.title ?? "Unknown"): \(error)")
                             Image(systemName: "book.fill")
                                 .font(.system(size: 30))
                                 .foregroundColor(themeColors.textSecondary)
