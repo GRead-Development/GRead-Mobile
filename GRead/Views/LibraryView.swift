@@ -207,6 +207,40 @@ struct LibraryItemCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
+                // Book Cover
+                if let coverUrl = libraryItem.book?.coverUrl, let url = URL(string: coverUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(width: 60, height: 90)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 60, height: 90)
+                                .clipped()
+                                .cornerRadius(6)
+                        case .failure:
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(themeColors.textSecondary)
+                                .frame(width: 60, height: 90)
+                                .background(themeColors.border.opacity(0.3))
+                                .cornerRadius(6)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                } else {
+                    Image(systemName: "book.fill")
+                        .font(.system(size: 30))
+                        .foregroundColor(themeColors.textSecondary)
+                        .frame(width: 60, height: 90)
+                        .background(themeColors.border.opacity(0.3))
+                        .cornerRadius(6)
+                }
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text((libraryItem.book?.title ?? "Unknown Book").decodingHTMLEntities)
                         .font(.headline)

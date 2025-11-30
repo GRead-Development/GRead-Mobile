@@ -4,7 +4,7 @@ import SwiftUI
 @main
 struct GReadApp: App {
     @StateObject private var authManager = AuthManager.shared
-    @ObservedObject var themeManager = ThemeManager.shared
+    @StateObject private var themeManager = ThemeManager.shared
     @State private var showSplash = true
 
     var body: some Scene {
@@ -45,6 +45,8 @@ struct GReadApp: App {
                 ))
                 // Apply preferred color scheme based on current theme
                 .preferredColorScheme(themeManager.currentTheme.effectiveIsDarkTheme ? .dark : .light)
+                // Force view refresh when theme changes
+                .id(themeManager.currentTheme.id)
 
                 // Splash screen overlay
                 if showSplash {

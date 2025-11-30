@@ -799,18 +799,38 @@ class APIManager {
 
     /// Add a book to the user's library
     func addBookToLibrary(bookId: Int, status: String, currentPage: Int) async throws {
+        Logger.debug("Adding book \(bookId) to library with status: \(status)")
+
         let body: [String: Any] = [
             "book_id": bookId,
             "status": status,
             "current_page": currentPage
         ]
 
-        let _: APIResponse<EmptyResponse> = try await customRequest(
-            endpoint: "/library/add",
-            method: "POST",
-            body: body,
-            authenticated: true
-        )
+        // This endpoint returns a simple success response, not wrapped in APIResponse
+        struct SimpleSuccessResponse: Codable {
+            let success: Bool
+            let message: String?
+        }
+
+        do {
+            let response: SimpleSuccessResponse = try await customRequest(
+                endpoint: "/library/add",
+                method: "POST",
+                body: body,
+                authenticated: true
+            )
+
+            if response.success {
+                Logger.debug("Successfully added book to library")
+            } else {
+                Logger.warning("Library add returned success=false")
+                throw APIError.invalidResponse
+            }
+        } catch {
+            Logger.error("Failed to add book to library: \(error)")
+            throw error
+        }
     }
 }
 

@@ -338,6 +338,42 @@ struct CompactBookCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Book Cover
+            if let coverUrl = item.book?.coverUrl, let url = URL(string: coverUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 100, height: 140)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 100, height: 140)
+                            .clipped()
+                            .cornerRadius(8)
+                    case .failure:
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(themeColors.textSecondary)
+                            .frame(width: 100, height: 140)
+                            .background(themeColors.border.opacity(0.3))
+                            .cornerRadius(8)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                Image(systemName: "book.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(themeColors.textSecondary)
+                    .frame(width: 100, height: 140)
+                    .background(themeColors.border.opacity(0.3))
+                    .cornerRadius(8)
+                    .frame(maxWidth: .infinity)
+            }
+
             Text(item.book?.title ?? "Unknown")
                 .font(.subheadline)
                 .fontWeight(.semibold)

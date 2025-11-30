@@ -484,6 +484,32 @@ struct ProfileView: View {
                                     .foregroundColor(themeColors.textPrimary)
                                     .padding(.horizontal)
 
+                                NavigationLink(destination: CacheSettingsView()) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "externaldrive.fill")
+                                            .foregroundColor(themeColors.primary)
+                                            .frame(width: 30)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Cache Settings")
+                                                .foregroundColor(themeColors.textPrimary)
+                                            Text(CacheManager.shared.formatBytes(CacheManager.shared.cacheSize))
+                                                .font(.caption)
+                                                .foregroundColor(themeColors.textSecondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                    .padding()
+                                    .background(themeColors.background)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(themeColors.border, lineWidth: 1)
+                                    )
+                                    .padding(.horizontal)
+                                }
+
                                 NavigationLink(destination: BlockedUsersView()) {
                                     HStack(spacing: 12) {
                                         Image(systemName: "hand.raised.fill")
@@ -505,26 +531,27 @@ struct ProfileView: View {
                                     .padding(.horizontal)
                                 }
 
-                                NavigationLink(destination: ProfileFieldsDebugView().environmentObject(authManager)) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "ant.fill")
-                                            .foregroundColor(themeColors.warning)
-                                            .frame(width: 30)
-                                        Text("Debug Profile Fields")
-                                            .foregroundColor(themeColors.textPrimary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(themeColors.textSecondary)
-                                    }
-                                    .padding()
-                                    .background(themeColors.background)
-                                    .cornerRadius(8)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(themeColors.border, lineWidth: 1)
-                                    )
-                                    .padding(.horizontal)
-                                }
+                                // DEBUG: Hidden from users - uncomment to show debug profile fields view
+                                // NavigationLink(destination: ProfileFieldsDebugView().environmentObject(authManager)) {
+                                //     HStack(spacing: 12) {
+                                //         Image(systemName: "ant.fill")
+                                //             .foregroundColor(themeColors.warning)
+                                //             .frame(width: 30)
+                                //         Text("Debug Profile Fields")
+                                //             .foregroundColor(themeColors.textPrimary)
+                                //         Spacer()
+                                //         Image(systemName: "chevron.right")
+                                //             .foregroundColor(themeColors.textSecondary)
+                                //     }
+                                //     .padding()
+                                //     .background(themeColors.background)
+                                //     .cornerRadius(8)
+                                //     .overlay(
+                                //         RoundedRectangle(cornerRadius: 8)
+                                //             .stroke(themeColors.border, lineWidth: 1)
+                                //     )
+                                //     .padding(.horizontal)
+                                // }
                             }
 
                             VStack(alignment: .leading, spacing: 12) {

@@ -80,9 +80,18 @@ struct BarcodeScannerView: View {
             }
             .sheet(isPresented: $showBookDetails) {
                 if let book = foundBook {
-                    BookDetailSheet(book: book, onAdd: {
-                        addBookToLibrary(book)
-                    })
+                    BookDetailSheet(
+                        book: book,
+                        isInLibrary: isBookInLibrary(book),
+                        onAdd: {
+                            addBookToLibrary(book)
+                        },
+                        onViewInLibrary: {
+                            showBookDetails = false
+                            dismiss()
+                        }
+                    )
+                    .environmentObject(authManager)
                 }
             }
             .alert("Book Added!", isPresented: $showImportSuccess) {
@@ -167,6 +176,17 @@ struct BarcodeScannerView: View {
         let importedBook = try await APIManager.shared.importBookFromOpenLibrary(openLibraryBookData: bookData)
         Logger.debug("Successfully imported book with ID: \(importedBook.id)")
         return importedBook
+    }
+
+    private func isBookInLibrary(_ book: Book) -> Bool {
+        // Check if the book is already in the user's library
+        let bookId = book.id
+        let isInLibrary = LibraryManager.shared.libraryItems.contains { libraryItem in
+            guard let libraryBook = libraryItem.book else { return false }
+            return libraryBook.id == bookId
+        }
+        Logger.debug("Book \(bookId) in library check: \(isInLibrary)")
+        return isInLibrary
     }
 
     private func addBookToLibrary(_ book: Book) {
@@ -320,10 +340,14 @@ struct BarcodeScannerCameraView: UIViewRepresentable {
 
 struct BookDetailSheet: View {
     let book: Book
+    let isInLibrary: Bool
     let onAdd: () -> Void
+    let onViewInLibrary: () -> Void
 
     @Environment(\.dismiss) var dismiss
     @Environment(\.themeColors) var themeColors
+    @EnvironmentObject var authManager: AuthManager
+    @State private var navigateToBookDetail = false
 
     var body: some View {
         NavigationView {
@@ -380,17 +404,50 @@ struct BookDetailSheet: View {
                     }
                     .padding()
 
-                    // Add button
-                    Button(action: onAdd) {
-                        Label("Add to Library", systemImage: "plus.circle.fill")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
+                    // Action button - different based on whether book is in library
+                    if isInLibrary {
+                        VStack(spacing: 16) {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.title2)
+                                Text("Already in your library")
+                                    .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
+                            }
                             .padding()
-                            .background(themeColors.primary)
+                            .frame(maxWidth: .infinity)
+                            .background(themeColors.cardBackground)
                             .cornerRadius(12)
+
+                            Text("This book is already in your library. You can find it in the Library tab to update your reading progress.")
+                                .font(.caption)
+                                .foregroundColor(themeColors.textSecondary)
+                                .multilineTextAlignment(.center)
+
+                            Button(action: { dismiss() }) {
+                                Text("OK")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(themeColors.primary)
+                                    .cornerRadius(12)
+                            }
+                        }
+                        .padding()
+                    } else {
+                        Button(action: onAdd) {
+                            Label("Add to Library", systemImage: "plus.circle.fill")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(themeColors.primary)
+                                .cornerRadius(12)
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
             }
             .navigationTitle("Book Details")
