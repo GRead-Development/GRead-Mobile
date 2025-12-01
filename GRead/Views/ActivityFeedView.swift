@@ -16,6 +16,7 @@ struct ActivityFeedView: View {
     @State private var listRefreshID = UUID()
     @State private var showLoginSheet = false
     @State private var isLoadingModeration = false
+    @State private var userCache: [Int: User] = [:]  // Cache of User objects by userId
 
     // Sheet state - only one sheet can be open at a time
     enum SheetType: Identifiable {
@@ -59,6 +60,8 @@ struct ActivityFeedView: View {
                             ForEach(organizedActivities, id: \.id) { activity in
                                 ThreadedActivityView(
                                     activity: activity,
+                                    user: activity.userId.flatMap { userCache[$0] },
+                                    userCache: userCache,
                                     onUserTap: { userId in
                                         activeSheet = .userProfile(userId: userId)
                                     },
@@ -252,6 +255,9 @@ struct ActivityFeedView: View {
                 hasMorePages = response.count >= 20
                 isLoading = false
             }
+
+            // Fetch user data for activities
+            await loadUsersForActivities()
         } catch APIError.emptyResponse {
             await MainActor.run {
                 if page == 1 {
@@ -286,7 +292,31 @@ struct ActivityFeedView: View {
         page += 1
         await loadActivities()
     }
-    
+
+    private func loadUsersForActivities() async {
+        // Get unique user IDs from all activities
+        let userIds = Set(activities.compactMap { $0.userId })
+
+        // Fetch users that aren't already cached
+        for userId in userIds {
+            guard userCache[userId] == nil else { continue }
+
+            do {
+                let user: User = try await APIManager.shared.request(
+                    endpoint: "/members/\(userId)",
+                    authenticated: false
+                )
+
+                await MainActor.run {
+                    userCache[userId] = user
+                }
+            } catch {
+                // Silently fail - we'll fall back to activity.avatarURL
+                print("Failed to load user \(userId): \(error)")
+            }
+        }
+    }
+
     private func deleteActivity(_ activity: Activity) {
         Task {
             do {
@@ -434,6 +464,8 @@ struct ActivityFeedView: View {
 
 struct ThreadedActivityView: View {
     let activity: Activity
+    let user: User?
+    let userCache: [Int: User]
     let onUserTap: (Int) -> Void
     let onCommentsTap: () -> Void
     let onReport: () -> Void
@@ -445,6 +477,7 @@ struct ThreadedActivityView: View {
             // Main post
             ActivityRowView(
                 activity: activity,
+                user: user,
                 onUserTap: onUserTap,
                 onCommentsTap: onCommentsTap,
                 onReport: onReport,
@@ -470,6 +503,8 @@ struct ThreadedActivityView: View {
                 ForEach(sortedChildren) { child in
                     CommentThreadView(
                         comment: child,
+                        user: child.userId.flatMap { userCache[$0] },
+                        userCache: userCache,
                         onUserTap: onUserTap,
                         onCommentsTap: onCommentsTap,
                         onReport: onReport,
@@ -484,6 +519,8 @@ struct ThreadedActivityView: View {
 
 struct CommentThreadView: View {
     let comment: Activity
+    let user: User?
+    let userCache: [Int: User]
     let onUserTap: (Int) -> Void
     let onCommentsTap: () -> Void
     let onReport: () -> Void
@@ -506,6 +543,7 @@ struct CommentThreadView: View {
                 // Comment content
                 ActivityRowView(
                     activity: comment,
+                    user: user,
                     onUserTap: onUserTap,
                     onCommentsTap: onCommentsTap,
                     onReport: onReport,
@@ -527,6 +565,8 @@ struct CommentThreadView: View {
                 ForEach(children) { child in
                     CommentThreadView(
                         comment: child,
+                        user: child.userId.flatMap { userCache[$0] },
+                        userCache: userCache,
                         onUserTap: onUserTap,
                         onCommentsTap: onCommentsTap,
                         onReport: onReport,
@@ -541,6 +581,7 @@ struct CommentThreadView: View {
 
 struct ActivityRowView: View {
     let activity: Activity
+    let user: User?
     let onUserTap: (Int) -> Void
     let onCommentsTap: () -> Void
     let onReport: () -> Void
@@ -550,8 +591,8 @@ struct ActivityRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                // Avatar with fallback
-                AsyncImage(url: URL(string: activity.avatarURL)) { phase in
+                // Avatar with fallback - use User.avatarUrl if available
+                AsyncImage(url: URL(string: user?.avatarUrl ?? activity.avatarURL)) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -675,6 +716,7 @@ struct CommentView: View {
     @State private var commentText = ""
     @State private var isPosting = false
     @State private var commentError: String?
+    @State private var userCache: [Int: User] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -730,7 +772,12 @@ struct CommentView: View {
                                 return date1 < date2
                             }
                             ForEach(sortedComments) { comment in
-                                CommentItemView(comment: comment, onUserTap: onUserTap)
+                                CommentItemView(
+                                    comment: comment,
+                                    user: comment.userId.flatMap { userCache[$0] },
+                                    userCache: userCache,
+                                    onUserTap: onUserTap
+                                )
                             }
                         }
                         .padding(.horizontal)
@@ -770,8 +817,47 @@ struct CommentView: View {
             }
             .padding()
         }
+        .task {
+            await loadUsersForComments()
+        }
     }
-    
+
+    private func loadUsersForComments() async {
+        // Get unique user IDs from activity children (comments)
+        guard let children = activity.children else { return }
+
+        func collectUserIds(from activities: [Activity]) -> Set<Int> {
+            var ids = Set<Int>()
+            for activity in activities {
+                if let userId = activity.userId {
+                    ids.insert(userId)
+                }
+                if let children = activity.children {
+                    ids.formUnion(collectUserIds(from: children))
+                }
+            }
+            return ids
+        }
+
+        let userIds = collectUserIds(from: children)
+
+        // Fetch users
+        for userId in userIds {
+            do {
+                let user: User = try await APIManager.shared.request(
+                    endpoint: "/members/\(userId)",
+                    authenticated: false
+                )
+
+                await MainActor.run {
+                    userCache[userId] = user
+                }
+            } catch {
+                print("Failed to load user \(userId): \(error)")
+            }
+        }
+    }
+
     private func postComment() {
         isPosting = true
         commentError = nil
@@ -808,13 +894,15 @@ struct CommentView: View {
 struct CommentItemView: View {
     @Environment(\.themeColors) var themeColors
     let comment: Activity
+    let user: User?
+    let userCache: [Int: User]
     let onUserTap: (Int) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                // Avatar with fallback
-                AsyncImage(url: URL(string: comment.avatarURL)) { phase in
+                // Avatar with fallback - use User.avatarUrl if available
+                AsyncImage(url: URL(string: user?.avatarUrl ?? comment.avatarURL)) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -899,8 +987,13 @@ struct CommentItemView: View {
                         .padding(.vertical, 4)
 
                     ForEach(children) { child in
-                        CommentItemView(comment: child, onUserTap: onUserTap)
-                            .padding(.leading, 8)
+                        CommentItemView(
+                            comment: child,
+                            user: child.userId.flatMap { userCache[$0] },
+                            userCache: userCache,
+                            onUserTap: onUserTap
+                        )
+                        .padding(.leading, 8)
                     }
                 }
             }
