@@ -69,4 +69,16 @@ struct User: Codable, Identifiable {
         avatarUrls = try? container.decode([String: String].self, forKey: .avatarUrls)
         avatar = try? container.decode(String.self, forKey: .avatar)
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(link, forKey: .link)
+        try container.encodeIfPresent(userLogin, forKey: .userLogin)
+        try container.encodeIfPresent(memberTypes, forKey: .memberTypes)
+        try container.encodeIfPresent(registeredDate, forKey: .registeredDate)
+        try container.encodeIfPresent(avatarUrls, forKey: .avatarUrls)
+        try container.encodeIfPresent(avatar, forKey: .avatar)
+    }
 }
