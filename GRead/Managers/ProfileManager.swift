@@ -60,7 +60,7 @@ class ProfileManager: ObservableObject {
             print("❌ Failed to load profile: \(error)")
         }
 
-        // Load xprofile fields
+        // Load xprofile fields (optional - don't fail if endpoint doesn't exist)
         do {
             let fields = try await APIManager.shared.getXProfileFields()
             await MainActor.run {
@@ -79,7 +79,8 @@ class ProfileManager: ObservableObject {
                 }
                 return
             }
-            print("❌ Failed to load xprofile fields: \(error)")
+            // XProfile fields are optional - just log warning and continue
+            print("⚠️ XProfile fields not available: \(error)")
         }
 
         await MainActor.run {
