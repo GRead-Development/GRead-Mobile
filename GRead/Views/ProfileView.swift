@@ -28,7 +28,14 @@ struct ProfileView: View {
 
                         // Profile Header
                         VStack(spacing: 16) {
-                            AsyncImage(url: URL(string: profileManager.userProfile?.avatarUrl ?? user.avatarUrl)) { image in
+                            AsyncImage(url: URL(string: {
+                                // Try profileManager first, but check for non-empty string
+                                if let avatarUrl = profileManager.userProfile?.avatarUrl, !avatarUrl.isEmpty {
+                                    return avatarUrl
+                                }
+                                // Fall back to user.avatarUrl which has better fallback logic
+                                return user.avatarUrl
+                            }())) { image in
                                 image.resizable()
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")

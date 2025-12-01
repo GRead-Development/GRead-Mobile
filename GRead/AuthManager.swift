@@ -203,12 +203,20 @@ class AuthManager: ObservableObject {
     }
     
     func fetchCurrentUser() async throws {
-        let user: User = try await APIManager.shared.request(
+        // First get basic user info from /members/me
+        let basicUser: User = try await APIManager.shared.request(
             endpoint: "/members/me",
             authenticated: true
         )
+
+        // Then fetch full user data with avatar from /members/{id}
+        let fullUser: User = try await APIManager.shared.request(
+            endpoint: "/members/\(basicUser.id)",
+            authenticated: false
+        )
+
         await MainActor.run {
-            self.currentUser = user
+            self.currentUser = fullUser
         }
     }
     

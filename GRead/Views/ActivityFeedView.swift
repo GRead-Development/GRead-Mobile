@@ -16,7 +16,6 @@ struct ActivityFeedView: View {
     @State private var listRefreshID = UUID()
     @State private var showLoginSheet = false
     @State private var isLoadingModeration = false
-    @State private var userCache: [Int: User] = [:]  // Cache of User objects by userId
 
     // Sheet state - only one sheet can be open at a time
     enum SheetType: Identifiable {
@@ -60,8 +59,6 @@ struct ActivityFeedView: View {
                             ForEach(organizedActivities, id: \.id) { activity in
                                 ThreadedActivityView(
                                     activity: activity,
-                                    user: activity.userId.flatMap { userCache[$0] },
-                                    userCache: userCache,
                                     onUserTap: { userId in
                                         activeSheet = .userProfile(userId: userId)
                                     },
@@ -255,9 +252,6 @@ struct ActivityFeedView: View {
                 hasMorePages = response.count >= 20
                 isLoading = false
             }
-
-            // Fetch user data for activities
-            await loadUsersForActivities()
         } catch APIError.emptyResponse {
             await MainActor.run {
                 if page == 1 {
@@ -291,30 +285,6 @@ struct ActivityFeedView: View {
         guard !isLoading && hasMorePages else { return }
         page += 1
         await loadActivities()
-    }
-
-    private func loadUsersForActivities() async {
-        // Get unique user IDs from all activities
-        let userIds = Set(activities.compactMap { $0.userId })
-
-        // Fetch users that aren't already cached
-        for userId in userIds {
-            guard userCache[userId] == nil else { continue }
-
-            do {
-                let user: User = try await APIManager.shared.request(
-                    endpoint: "/members/\(userId)",
-                    authenticated: false
-                )
-
-                await MainActor.run {
-                    userCache[userId] = user
-                }
-            } catch {
-                // Silently fail - we'll fall back to activity.avatarURL
-                print("Failed to load user \(userId): \(error)")
-            }
-        }
     }
 
     private func deleteActivity(_ activity: Activity) {
@@ -464,8 +434,6 @@ struct ActivityFeedView: View {
 
 struct ThreadedActivityView: View {
     let activity: Activity
-    let user: User?
-    let userCache: [Int: User]
     let onUserTap: (Int) -> Void
     let onCommentsTap: () -> Void
     let onReport: () -> Void
@@ -477,7 +445,6 @@ struct ThreadedActivityView: View {
             // Main post
             ActivityRowView(
                 activity: activity,
-                user: user,
                 onUserTap: onUserTap,
                 onCommentsTap: onCommentsTap,
                 onReport: onReport,
@@ -503,8 +470,6 @@ struct ThreadedActivityView: View {
                 ForEach(sortedChildren) { child in
                     CommentThreadView(
                         comment: child,
-                        user: child.userId.flatMap { userCache[$0] },
-                        userCache: userCache,
                         onUserTap: onUserTap,
                         onCommentsTap: onCommentsTap,
                         onReport: onReport,
@@ -519,8 +484,6 @@ struct ThreadedActivityView: View {
 
 struct CommentThreadView: View {
     let comment: Activity
-    let user: User?
-    let userCache: [Int: User]
     let onUserTap: (Int) -> Void
     let onCommentsTap: () -> Void
     let onReport: () -> Void
@@ -543,7 +506,6 @@ struct CommentThreadView: View {
                 // Comment content
                 ActivityRowView(
                     activity: comment,
-                    user: user,
                     onUserTap: onUserTap,
                     onCommentsTap: onCommentsTap,
                     onReport: onReport,
@@ -565,8 +527,6 @@ struct CommentThreadView: View {
                 ForEach(children) { child in
                     CommentThreadView(
                         comment: child,
-                        user: child.userId.flatMap { userCache[$0] },
-                        userCache: userCache,
                         onUserTap: onUserTap,
                         onCommentsTap: onCommentsTap,
                         onReport: onReport,
@@ -581,7 +541,6 @@ struct CommentThreadView: View {
 
 struct ActivityRowView: View {
     let activity: Activity
-    let user: User?
     let onUserTap: (Int) -> Void
     let onCommentsTap: () -> Void
     let onReport: () -> Void
@@ -591,8 +550,8 @@ struct ActivityRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                // Avatar with fallback - use User.avatarUrl if available
-                AsyncImage(url: URL(string: user?.avatarUrl ?? activity.avatarURL)) { phase in
+                // Avatar with fallback
+                AsyncImage(url: URL(string: activity.avatarURL)) { phase in
                     switch phase {
                     case .success(let image):
                         image
