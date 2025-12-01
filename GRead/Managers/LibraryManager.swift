@@ -149,7 +149,7 @@ class LibraryManager: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "cachedLibraryItems"),
            let decoded = try? JSONDecoder().decode([LibraryItem].self, from: data) {
             libraryItems = decoded
-            hasLoadedOnce = true
+            // Don't set hasLoadedOnce here - cache data should not prevent fresh server loads
             print("📚 Loaded \(decoded.count) items from cache")
         }
 
