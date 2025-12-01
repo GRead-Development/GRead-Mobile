@@ -145,7 +145,7 @@ class DashboardManager: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "cachedDashboardStats"),
            let decoded = try? JSONDecoder().decode(UserStats.self, from: data) {
             stats = decoded
-            hasLoadedOnce = true
+            // Don't set hasLoadedOnce here - cache data should not prevent fresh server loads
             print("📊 Loaded stats from cache")
         }
 

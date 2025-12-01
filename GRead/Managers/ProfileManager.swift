@@ -140,7 +140,7 @@ class ProfileManager: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "cachedUserProfile"),
            let decoded = try? JSONDecoder().decode(UserProfile.self, from: data) {
             userProfile = decoded
-            hasLoadedOnce = true
+            // Don't set hasLoadedOnce here - cache data should not prevent fresh server loads
             print("📋 Loaded profile from cache for \(decoded.displayName)")
         }
 
