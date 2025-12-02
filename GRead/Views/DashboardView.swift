@@ -272,13 +272,14 @@ struct DashboardView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(currentlyReading, id: \.id) { item in
-                        CompactBookCard(
-                            item: item,
-                            onTap: {
-                                selectedBook = item
-                                showProgressEditor = true
+                        if let bookId = item.book?.id {
+                            NavigationLink(destination: BookDetailView(bookId: bookId)) {
+                                CompactBookCard(item: item, onTap: nil)
                             }
-                        )
+                            .buttonStyle(PlainButtonStyle())
+                        } else {
+                            CompactBookCard(item: item, onTap: nil)
+                        }
                     }
                 }
                 .padding(.horizontal)

@@ -716,6 +716,26 @@ class APIManager {
 
     // MARK: - Book & Barcode Scanning
 
+    /// Fetch detailed book information by book ID
+    func fetchBookDetail(bookId: Int) async throws -> BookDetail {
+        Logger.debug("Fetching book detail for ID: \(bookId)")
+        Logger.debug("Full URL: \(customBaseURL)/book/\(bookId)")
+
+        do {
+            // This endpoint returns BookDetail directly, not wrapped in APIResponse
+            let bookDetail: BookDetail = try await customRequest(
+                endpoint: "/book/\(bookId)",
+                method: "GET",
+                authenticated: false // Book details are publicly accessible per docs
+            )
+            Logger.debug("Book detail fetched successfully: \(bookDetail.title)")
+            return bookDetail
+        } catch {
+            Logger.error("Failed to fetch book detail for ID \(bookId): \(error)")
+            throw error
+        }
+    }
+
     /// Search for a book by ISBN in the GRead database
     func searchBookByISBN(isbn: String) async throws -> Book {
         Logger.debug("Searching GRead API for ISBN: \(isbn)")

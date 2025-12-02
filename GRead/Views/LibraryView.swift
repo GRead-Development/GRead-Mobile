@@ -164,11 +164,22 @@ struct LibraryView: View {
                                 }
 
                                 ForEach(filteredItems, id: \.id) { item in
-                                    LibraryItemCard(libraryItem: item, onDelete: {
-                                        deleteBook(item)
-                                    }, onProgressUpdate: { newPage in
-                                        updateProgress(item: item, currentPage: newPage)
-                                    })
+                                    if let bookId = item.book?.id {
+                                        NavigationLink(destination: BookDetailView(bookId: bookId)) {
+                                            LibraryItemCard(libraryItem: item, onDelete: {
+                                                deleteBook(item)
+                                            }, onProgressUpdate: { newPage in
+                                                updateProgress(item: item, currentPage: newPage)
+                                            })
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    } else {
+                                        LibraryItemCard(libraryItem: item, onDelete: {
+                                            deleteBook(item)
+                                        }, onProgressUpdate: { newPage in
+                                            updateProgress(item: item, currentPage: newPage)
+                                        })
+                                    }
                                 }
                                 .padding()
 
@@ -253,9 +264,6 @@ struct LibraryItemCard: View {
     let onDelete: () -> Void
     let onProgressUpdate: (Int) -> Void
     @Environment(\.themeColors) var themeColors
-
-    @State private var showProgressEditor = false
-    @State private var newPageCount = 0
 
     var progressPercentage: Double {
         guard let totalPages = libraryItem.book?.totalPages, totalPages > 0 else { return 0 }
@@ -370,20 +378,6 @@ struct LibraryItemCard: View {
         )
         .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
         .contentShape(Rectangle())
-        .onTapGesture {
-            showProgressEditor = true
-        }
-        .sheet(isPresented: $showProgressEditor) {
-            ProgressEditorSheet(
-                isPresented: $showProgressEditor,
-                currentPage: libraryItem.currentPage,
-                totalPages: libraryItem.book?.totalPages ?? 0,
-                onSave: { newPage in
-                    onProgressUpdate(newPage)
-                    showProgressEditor = false
-                }
-            )
-        }
     }
 }
 
