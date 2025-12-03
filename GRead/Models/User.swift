@@ -40,6 +40,18 @@ struct User: Codable, Identifiable {
         return "https://www.gravatar.com/avatar/default?d=mp&s=150"
     }
 
+    // Simple initializer for creating User objects directly
+    init(id: Int, name: String, userLogin: String?, link: String? = nil, avatarUrls: [String: String]? = nil, avatar: String? = nil, memberTypes: [String]? = nil, registeredDate: String? = nil) {
+        self.id = id
+        self.name = name
+        self.link = link
+        self.userLogin = userLogin
+        self.memberTypes = memberTypes
+        self.registeredDate = registeredDate
+        self.avatarUrls = avatarUrls
+        self.avatar = avatar
+    }
+
     // Custom decoder to handle id being returned as string from API
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)

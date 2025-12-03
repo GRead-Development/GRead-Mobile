@@ -37,8 +37,7 @@ struct ActivityFeedView: View {
     
     var body: some View {
         ZStack {
-            NavigationView {
-                Group {
+            Group {
                     // Content
                     if isLoading && organizedActivities.isEmpty {
                         ProgressView("Loading activities...")
@@ -175,9 +174,7 @@ struct ActivityFeedView: View {
                         Text(error)
                     }
                 }
-            }
-            .id(1)  // Stable ID to prevent NavigationView from rebuilding when sheet state changes
-            .navigationViewStyle(.stack)  // Force stack layout on iPad for full-screen display
+            .id(1)  // Stable ID to prevent rebuilding when sheet state changes
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {

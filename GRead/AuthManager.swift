@@ -248,4 +248,207 @@ class AuthManager: ObservableObject {
             }
         }
     }
+
+    // MARK: - Apple Sign In
+
+    /// Login with Apple - for existing users
+    func loginWithApple(identityToken: String, authorizationCode: String, userIdentifier: String) async throws {
+        guard let url = URL(string: "https://gread.fun/wp-json/gread/v1/auth/apple/login") else {
+            throw AuthError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Backend expects appleUserID (camelCase)
+        let body: [String: String] = [
+            "appleUserID": userIdentifier
+        ]
+
+        request.httpBody = try JSONEncoder().encode(body)
+
+        // Log request details
+        Logger.debug("=== Apple Login Request ===")
+        Logger.debug("URL: \(url)")
+        Logger.debug("Body: \(body)")
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            Logger.debug("Request JSON: \(bodyString)")
+        }
+        Logger.debug("========================")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AuthError.invalidResponse
+            }
+
+            Logger.debug("=== Apple Login Response ===")
+            Logger.debug("Status: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.debug("Response: \(responseString)")
+            }
+            Logger.debug("========================")
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                // If 404 or user not found, this means they need to register
+                if httpResponse.statusCode == 404 {
+                    throw AuthError.userNotFound
+                }
+                Logger.error("Apple login failed with status: \(httpResponse.statusCode)")
+                throw AuthError.httpError(httpResponse.statusCode)
+            }
+
+            // Parse Apple auth response
+            let appleResponse = try JSONDecoder().decode(AppleAuthResponse.self, from: data)
+
+            // Store auth token (this is a WordPress nonce-style token, not JWT)
+            self.jwtToken = appleResponse.token
+
+            // Create user object from Apple response (don't fetch from /members/me)
+            let user = User(
+                id: appleResponse.userId ?? 0,
+                name: appleResponse.displayName ?? appleResponse.username ?? "User",
+                userLogin: appleResponse.username
+            )
+
+            await MainActor.run {
+                self.currentUser = user
+                self.isAuthenticated = true
+                self.isGuestMode = false
+                saveAuthState()
+            }
+
+            // Fetch full user profile in background (this will update avatar, etc.)
+            Task {
+                do {
+                    try await fetchCurrentUser()
+                } catch {
+                    Logger.warning("Could not fetch full user profile after Apple login: \(error)")
+                    // Not critical - we already have basic user info
+                }
+            }
+        } catch let error as AuthError {
+            throw error
+        } catch {
+            Logger.error("Apple login error: \(error)")
+            throw AuthError.networkError
+        }
+    }
+
+    /// Register with Apple - for new users (returns username selection requirement)
+    func registerWithApple(
+        identityToken: String,
+        authorizationCode: String,
+        userIdentifier: String,
+        email: String?,
+        fullName: String?,
+        username: String
+    ) async throws {
+        guard let url = URL(string: "https://gread.fun/wp-json/gread/v1/auth/apple/register") else {
+            throw AuthError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Backend expects: appleUserID, email, username, and optionally fullName
+        var body: [String: String] = [
+            "appleUserID": userIdentifier,
+            "username": username
+        ]
+
+        // Email is required by backend
+        if let email = email {
+            body["email"] = email
+        } else {
+            // If no email provided, generate a placeholder
+            // This shouldn't happen with Apple Sign In, but just in case
+            body["email"] = "\(userIdentifier)@appleid.private"
+        }
+
+        if let fullName = fullName {
+            body["fullName"] = fullName
+        }
+
+        request.httpBody = try JSONEncoder().encode(body)
+
+        // Log request details
+        Logger.debug("=== Apple Register Request ===")
+        Logger.debug("URL: \(url)")
+        Logger.debug("Body: \(body)")
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            Logger.debug("Request JSON: \(bodyString)")
+        }
+        Logger.debug("========================")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AuthError.invalidResponse
+            }
+
+            Logger.debug("=== Apple Register Response ===")
+            Logger.debug("Status: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.debug("Response: \(responseString)")
+            }
+            Logger.debug("========================")
+
+            // Check for username already taken error
+            if httpResponse.statusCode == 400 || httpResponse.statusCode == 409 {
+                if let errorResponse = try? JSONDecoder().decode(AppleAuthErrorResponse.self, from: data),
+                   let message = errorResponse.message {
+                    if message.lowercased().contains("username") {
+                        throw AuthError.registrationFailed("This username is already taken. Please choose another.")
+                    }
+                    throw AuthError.registrationFailed(message)
+                }
+                throw AuthError.registrationFailed("Registration failed. Please try again.")
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                Logger.error("Apple registration failed with status: \(httpResponse.statusCode)")
+                throw AuthError.httpError(httpResponse.statusCode)
+            }
+
+            // Parse Apple auth response
+            let appleResponse = try JSONDecoder().decode(AppleAuthResponse.self, from: data)
+
+            // Store auth token (this is a WordPress nonce-style token, not JWT)
+            self.jwtToken = appleResponse.token
+
+            // Create user object from Apple response (don't fetch from /members/me)
+            let user = User(
+                id: appleResponse.userId ?? 0,
+                name: appleResponse.displayName ?? appleResponse.username ?? "User",
+                userLogin: appleResponse.username
+            )
+
+            await MainActor.run {
+                self.currentUser = user
+                self.isAuthenticated = true
+                self.isGuestMode = false
+                saveAuthState()
+            }
+
+            // Fetch full user profile in background (this will update avatar, etc.)
+            Task {
+                do {
+                    try await fetchCurrentUser()
+                } catch {
+                    Logger.warning("Could not fetch full user profile after Apple registration: \(error)")
+                    // Not critical - we already have basic user info
+                }
+            }
+        } catch let error as AuthError {
+            throw error
+        } catch {
+            Logger.error("Apple registration error: \(error)")
+            throw AuthError.networkError
+        }
+    }
 }

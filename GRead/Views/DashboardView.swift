@@ -42,72 +42,70 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // Welcome Header
-                    welcomeHeader
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                // Welcome Header
+                welcomeHeader
 
-                    // Quick Stats Grid
-                    if let stats = dashboardManager.stats {
-                        quickStatsGrid(stats: stats)
-                    }
-
-                    // Quick Actions
-                    quickActionsSection
-
-                    // Currently Reading Section
-                    if !currentlyReading.isEmpty {
-                        currentlyReadingSection
-                    }
-
-                    // Closest Achievements (removed Recent Posts)
-                    if !closestAchievements.isEmpty {
-                        closestAchievementsSection
-                    }
-
-                    // Bottom padding to prevent tab bar overlap
-                    Color.clear
-                        .frame(height: 80)
+                // Quick Stats Grid
+                if let stats = dashboardManager.stats {
+                    quickStatsGrid(stats: stats)
                 }
-                .padding(.vertical)
+
+                // Quick Actions
+                quickActionsSection
+
+                // Currently Reading Section
+                if !currentlyReading.isEmpty {
+                    currentlyReadingSection
+                }
+
+                // Closest Achievements (removed Recent Posts)
+                if !closestAchievements.isEmpty {
+                    closestAchievementsSection
+                }
+
+                // Bottom padding to prevent tab bar overlap
+                Color.clear
+                    .frame(height: 80)
             }
-            .background(themeColors.background)
-            .navigationTitle("Dashboard")
-            .refreshable {
+            .padding(.vertical)
+        }
+        .background(themeColors.background)
+        .navigationTitle("Dashboard")
+        .refreshable {
+            await loadAllData()
+        }
+        .task {
+            await loadAllDataIfNeeded()
+        }
+        .onChange(of: authManager.currentUser?.id) { _ in
+            Task {
                 await loadAllData()
             }
-            .task {
-                await loadAllDataIfNeeded()
+        }
+        .overlay {
+            if dashboardManager.isLoading || libraryManager.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(themeColors.background.opacity(0.8))
             }
-            .onChange(of: authManager.currentUser?.id) { _ in
-                Task {
-                    await loadAllData()
-                }
-            }
-            .overlay {
-                if dashboardManager.isLoading || libraryManager.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(themeColors.background.opacity(0.8))
-                }
-            }
-            .fullScreenCover(isPresented: $showBarcodeScanner) {
-                BarcodeScannerView()
-                    .environmentObject(authManager)
-            }
-            .sheet(isPresented: $showProgressEditor) {
-                if let book = selectedBook {
-                    ProgressEditorSheet(
-                        isPresented: $showProgressEditor,
-                        currentPage: book.currentPage,
-                        totalPages: book.book?.totalPages ?? 0,
-                        onSave: { newPage in
-                            updateProgress(item: book, currentPage: newPage)
-                            showProgressEditor = false
-                        }
-                    )
-                }
+        }
+        .fullScreenCover(isPresented: $showBarcodeScanner) {
+            BarcodeScannerView()
+                .environmentObject(authManager)
+        }
+        .sheet(isPresented: $showProgressEditor) {
+            if let book = selectedBook {
+                ProgressEditorSheet(
+                    isPresented: $showProgressEditor,
+                    currentPage: book.currentPage,
+                    totalPages: book.book?.totalPages ?? 0,
+                    onSave: { newPage in
+                        updateProgress(item: book, currentPage: newPage)
+                        showProgressEditor = false
+                    }
+                )
             }
         }
     }

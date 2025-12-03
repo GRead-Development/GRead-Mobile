@@ -77,9 +77,8 @@ struct LibraryView: View {
     }
 
     var body: some View {
-        NavigationView {
-            Group {
-                if libraryManager.libraryItems.isEmpty && !libraryManager.isLoading {
+        Group {
+            if libraryManager.libraryItems.isEmpty && !libraryManager.isLoading {
                     VStack(spacing: 20) {
                         Image(systemName: "books.vertical.fill")
                             .font(.system(size: 60))
@@ -232,7 +231,6 @@ struct LibraryView: View {
             .refreshable {
                 await libraryManager.loadLibrary()
             }
-        }
     }
 
     private func deleteBook(_ item: LibraryItem) {

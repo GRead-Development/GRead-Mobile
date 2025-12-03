@@ -21,8 +21,7 @@ struct ProfileView: View {
     let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 0) {
                     if let user = authManager.currentUser {
 
@@ -717,7 +716,6 @@ struct ProfileView: View {
             .task {
                 loadUserStats()
             }
-        }
     }
 
     private func loadUserStats() {

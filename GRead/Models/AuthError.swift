@@ -15,6 +15,7 @@ enum AuthError: LocalizedError {
     case httpError(Int)
     case networkError
     case registrationFailed(String)
+    case userNotFound
 
     var errorDescription: String? {
         switch self {
@@ -30,10 +31,33 @@ enum AuthError: LocalizedError {
             return "Network error. Please check your connection."
         case .registrationFailed(let message):
             return message
+        case .userNotFound:
+            return "User not found. Please register first."
         }
     }
 }
 
 struct RegistrationErrorResponse: Decodable {
     let message: String?
+}
+
+struct AppleAuthErrorResponse: Decodable {
+    let message: String?
+    let code: String?
+}
+
+struct AppleAuthResponse: Decodable {
+    let success: Bool
+    let message: String?
+    let userId: Int?
+    let username: String?
+    let email: String?
+    let token: String
+    let displayName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success, message, username, email, token
+        case userId = "user_id"
+        case displayName = "display_name"
+    }
 }

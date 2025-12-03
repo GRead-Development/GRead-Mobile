@@ -18,12 +18,13 @@ struct MainTabView: View {
     let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Background color that extends into safe areas
-            themeColors.background
-                .ignoresSafeArea()
+        NavigationView {
+            ZStack(alignment: .bottom) {
+                // Background color that extends into safe areas
+                themeColors.background
+                    .ignoresSafeArea()
 
-            TabView(selection: $selectedTab) {
+                TabView(selection: $selectedTab) {
                 DashboardView()
                     .environmentObject(authManager)
                     .tag(0)
@@ -139,17 +140,20 @@ struct MainTabView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingSearch = true }) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(themeColors.primary)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingSearch = true }) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(themeColors.primary)
+                    }
                 }
             }
+            .sheet(isPresented: $showingSearch) {
+                UserSearchView()
+                    .environmentObject(authManager)
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .sheet(isPresented: $showingSearch) {
-            UserSearchView()
-                .environmentObject(authManager)
-        }
+        .navigationViewStyle(.stack)
     }
 }
 
