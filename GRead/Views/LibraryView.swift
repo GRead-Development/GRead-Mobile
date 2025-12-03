@@ -265,6 +265,8 @@ struct LibraryItemCard: View {
     let onProgressUpdate: (Int) -> Void
     @Environment(\.themeColors) var themeColors
 
+    @State private var showProgressEditor = false
+
     var progressPercentage: Double {
         guard let totalPages = libraryItem.book?.totalPages, totalPages > 0 else { return 0 }
         return Double(libraryItem.currentPage) / Double(totalPages) * 100
@@ -344,6 +346,12 @@ struct LibraryItemCard: View {
                 Spacer()
 
                 Menu {
+                    Button {
+                        showProgressEditor = true
+                    } label: {
+                        Label("Update Progress", systemImage: "book.pages")
+                    }
+
                     Button(role: .destructive, action: onDelete) {
                         Label("Remove from Library", systemImage: "trash")
                     }
@@ -378,6 +386,17 @@ struct LibraryItemCard: View {
         )
         .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
         .contentShape(Rectangle())
+        .sheet(isPresented: $showProgressEditor) {
+            ProgressEditorSheet(
+                isPresented: $showProgressEditor,
+                currentPage: libraryItem.currentPage,
+                totalPages: libraryItem.book?.totalPages ?? 0,
+                onSave: { newPage in
+                    onProgressUpdate(newPage)
+                    showProgressEditor = false
+                }
+            )
+        }
     }
 }
 

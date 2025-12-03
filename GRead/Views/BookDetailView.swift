@@ -4,9 +4,21 @@ struct BookDetailView: View {
     let bookId: Int
     @Environment(\.themeColors) var themeColors
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var libraryManager = LibraryManager.shared
     @State private var bookDetail: BookDetail?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var showProgressEditor = false
+    @State private var showAddToLibrary = false
+
+    // Check if this book is in the user's library
+    var libraryItem: LibraryItem? {
+        libraryManager.libraryItems.first { $0.book?.id == bookId }
+    }
+
+    var isInLibrary: Bool {
+        libraryItem != nil
+    }
 
     var body: some View {
         ScrollView {
@@ -185,6 +197,56 @@ struct BookDetailView: View {
                         .padding(.horizontal)
                     }
 
+                    // Action Buttons
+                    VStack(spacing: 12) {
+                        if isInLibrary, let item = libraryItem {
+                            Button {
+                                showProgressEditor = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "book.pages")
+                                    Text("Update Progress")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(themeColors.primary)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+
+                            Button(role: .destructive) {
+                                Task {
+                                    await removeFromLibrary()
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "trash")
+                                    Text("Remove from Library")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(themeColors.error.opacity(0.1))
+                                .foregroundColor(themeColors.error)
+                                .cornerRadius(12)
+                            }
+                        } else {
+                            Button {
+                                showAddToLibrary = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Add to Library")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(themeColors.primary)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+
                     Spacer(minLength: 20)
                 }
                 .padding(.vertical)
@@ -192,6 +254,28 @@ struct BookDetailView: View {
         }
         .navigationTitle("Book Details")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showProgressEditor) {
+            if let item = libraryItem {
+                ProgressEditorSheet(
+                    isPresented: $showProgressEditor,
+                    currentPage: item.currentPage,
+                    totalPages: item.book?.totalPages ?? 0,
+                    onSave: { newPage in
+                        Task {
+                            await updateProgress(newPage: newPage)
+                        }
+                        showProgressEditor = false
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: $showAddToLibrary) {
+            AddToLibrarySheet(
+                isPresented: $showAddToLibrary,
+                bookId: bookId,
+                totalPages: bookDetail?.pageCount ?? 0
+            )
+        }
         .task {
             await loadBookDetail()
         }
@@ -218,6 +302,28 @@ struct BookDetailView: View {
             return String(format: "%.1fk", thousands)
         }
         return "\(number)"
+    }
+
+    private func updateProgress(newPage: Int) async {
+        guard let item = libraryItem, let bookId = item.book?.id else { return }
+
+        do {
+            try await libraryManager.updateProgress(bookId: bookId, currentPage: newPage)
+            Logger.debug("Progress updated successfully")
+        } catch {
+            Logger.error("Failed to update progress: \(error)")
+        }
+    }
+
+    private func removeFromLibrary() async {
+        guard let item = libraryItem, let bookId = item.book?.id else { return }
+
+        do {
+            try await libraryManager.removeBook(bookId)
+            Logger.debug("Book removed from library")
+        } catch {
+            Logger.error("Failed to remove book: \(error)")
+        }
     }
 }
 
@@ -262,6 +368,89 @@ struct InfoRow: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
         }
+    }
+}
+
+struct AddToLibrarySheet: View {
+    @Binding var isPresented: Bool
+    let bookId: Int
+    let totalPages: Int
+    @Environment(\.themeColors) var themeColors
+    @ObservedObject var libraryManager = LibraryManager.shared
+
+    @State private var selectedStatus: String = "reading"
+    @State private var currentPage: String = "0"
+    @State private var isAdding = false
+
+    let statuses = [
+        ("reading", "Currently Reading"),
+        ("completed", "Completed"),
+        ("paused", "Paused")
+    ]
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Reading Status")) {
+                    Picker("Status", selection: $selectedStatus) {
+                        ForEach(statuses, id: \.0) { status, label in
+                            Text(label).tag(status)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section(header: Text("Current Page")) {
+                    HStack {
+                        TextField("Current Page", text: $currentPage)
+                            .keyboardType(.numberPad)
+
+                        Text("/ \(totalPages)")
+                            .foregroundColor(themeColors.textSecondary)
+                    }
+                }
+            }
+            .navigationTitle("Add to Library")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        isPresented = false
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        Task {
+                            await addToLibrary()
+                        }
+                    }
+                    .disabled(isAdding)
+                }
+            }
+        }
+    }
+
+    private func addToLibrary() async {
+        isAdding = true
+
+        let page = Int(currentPage) ?? 0
+
+        do {
+            try await libraryManager.addBook(bookId)
+            // Update progress if needed
+            if page > 0 {
+                try await libraryManager.updateProgress(bookId: bookId, currentPage: page)
+            }
+            Logger.debug("Book added to library successfully")
+            await MainActor.run {
+                isPresented = false
+            }
+        } catch {
+            Logger.error("Failed to add book to library: \(error)")
+        }
+
+        isAdding = false
     }
 }
 
