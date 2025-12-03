@@ -203,20 +203,19 @@ class AuthManager: ObservableObject {
     }
     
     func fetchCurrentUser() async throws {
-        // First get basic user info from /members/me
-        let basicUser: User = try await APIManager.shared.request(
-            endpoint: "/members/me",
-            authenticated: true
-        )
+        // Use GRead custom endpoint for user profile (supports Apple auth tokens)
+        let profile: UserProfile = try await APIManager.shared.getMyProfile()
 
-        // Then fetch full user data with avatar from /members/{id}
-        let fullUser: User = try await APIManager.shared.request(
-            endpoint: "/members/\(basicUser.id)",
-            authenticated: false
+        // Convert UserProfile to User
+        let user = User(
+            id: profile.userId,
+            name: profile.displayName ?? profile.username,
+            userLogin: profile.username,
+            avatarUrl: profile.avatarUrl
         )
 
         await MainActor.run {
-            self.currentUser = fullUser
+            self.currentUser = user
         }
     }
     
