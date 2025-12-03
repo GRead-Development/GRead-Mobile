@@ -58,9 +58,10 @@ class APIManager {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Add JWT token to Authorization header
+        // Add JWT token to Authorization header and X-WP-Nonce (required by WordPress)
         if authenticated, let token = AuthManager.shared.jwtToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue(token, forHTTPHeaderField: "X-WP-Nonce")
         }
         
         if let body = body {
@@ -176,8 +177,10 @@ class APIManager {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+        // Add JWT token to Authorization header and X-WP-Nonce (required by WordPress)
         if authenticated, let token = AuthManager.shared.jwtToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue(token, forHTTPHeaderField: "X-WP-Nonce")
         }
 
         if let body = body {

@@ -42,6 +42,9 @@ struct GuestProfileView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(themeColors.background)
         .navigationTitle("Profile")
+        .toolbar {
+            // Empty toolbar to prevent inheriting toolbar items from other tabs
+        }
         .sheet(isPresented: $showingLoginRegister) {
             LoginRegisterView()
                 .environmentObject(authManager)
