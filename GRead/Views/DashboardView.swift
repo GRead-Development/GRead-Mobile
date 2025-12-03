@@ -73,6 +73,9 @@ struct DashboardView: View {
         }
         .background(themeColors.background)
         .navigationTitle("Dashboard")
+        .toolbar {
+            // Empty toolbar to prevent inheriting toolbar items from other tabs
+        }
         .refreshable {
             await loadAllData()
         }

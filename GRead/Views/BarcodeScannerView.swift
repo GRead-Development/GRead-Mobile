@@ -92,7 +92,14 @@ struct BarcodeScannerView: View {
                     Logger.debug("Barcode detected but already processing, ignoring")
                 }
             }
-            .sheet(isPresented: $showBookDetails) {
+            .sheet(isPresented: $showBookDetails, onDismiss: {
+                // Reset scanner state when sheet is dismissed to allow scanning another book
+                Logger.debug("Book detail sheet dismissed, resetting scanner for next scan")
+                scannedCode = nil
+                foundBook = nil
+                isProcessing = false
+                errorMessage = nil
+            }) {
                 if let book = foundBook {
                     BookDetailSheet(
                         book: book,
