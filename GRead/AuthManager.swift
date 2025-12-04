@@ -203,19 +203,41 @@ class AuthManager: ObservableObject {
     }
     
     func fetchCurrentUser() async throws {
-        // Use GRead custom endpoint for user profile (supports Apple auth tokens)
-        let profile: UserProfile = try await APIManager.shared.getMyProfile()
+        // Try GRead custom endpoint first (works with Apple auth tokens)
+        // Fall back to BuddyPress endpoints if it fails (for JWT tokens)
+        do {
+            let profile: UserProfile = try await APIManager.shared.getMyProfile()
 
-        // Convert UserProfile to User
-        let user = User(
-            id: profile.userId,
-            name: profile.displayName ?? profile.username,
-            userLogin: profile.username,
-            avatarUrl: profile.avatarUrl
-        )
+            // Convert UserProfile to User
+            let user = User(
+                id: profile.id,
+                name: profile.displayName,
+                userLogin: profile.username,
+                avatarUrls: profile.avatarUrl != nil ? ["full": profile.avatarUrl!] : nil
+            )
 
-        await MainActor.run {
-            self.currentUser = user
+            await MainActor.run {
+                self.currentUser = user
+            }
+        } catch {
+            // Fallback to BuddyPress endpoints for JWT authentication
+            Logger.debug("GRead endpoint failed, falling back to BuddyPress: \(error)")
+
+            // First get basic user info from /members/me
+            let basicUser: User = try await APIManager.shared.request(
+                endpoint: "/members/me",
+                authenticated: true
+            )
+
+            // Then fetch full user data with avatar from /members/{id}
+            let fullUser: User = try await APIManager.shared.request(
+                endpoint: "/members/\(basicUser.id)",
+                authenticated: false
+            )
+
+            await MainActor.run {
+                self.currentUser = fullUser
+            }
         }
     }
     

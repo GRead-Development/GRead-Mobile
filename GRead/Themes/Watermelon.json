@@ -1,0 +1,13 @@
+{
+  "id": "watermelon",
+  "name": "Watermelon",
+  "description": "Refreshing.",
+  "primary_color": "#A3D78A",
+  "secondary_color": "#C1E59F",
+  "accent_color": "#FF937E",
+  "background_color": "#FF5555",
+  "unlock_requirement": {
+    "stat": "points",
+    "value": 1
+  }
+}
