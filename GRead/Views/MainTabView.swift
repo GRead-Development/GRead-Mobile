@@ -12,7 +12,6 @@ struct MainTabView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var selectedTab: Int = 0
     @State private var showingProfile = false
-    @State private var showingSearch = false
     @Environment(\.themeColors) var themeColors
     @State private var dragOffset: CGFloat = 0
     let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -139,18 +138,6 @@ struct MainTabView: View {
                 .allowsHitTesting(false)
             }
         }
-        .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingSearch = true }) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(themeColors.primary)
-                    }
-                }
-            }
-            .sheet(isPresented: $showingSearch) {
-                UserSearchView()
-                    .environmentObject(authManager)
-            }
             .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(.stack)
