@@ -17,7 +17,7 @@ struct MentionText: View {
     }
 
     var body: some View {
-        Text(segments.map { segment in
+        segments.map { segment in
             if segment.isMention, let username = segment.username {
                 return Text("@\(username)")
                     .foregroundColor(themeColors.primary)
@@ -26,7 +26,7 @@ struct MentionText: View {
                 return Text(segment.text)
                     .foregroundColor(themeColors.textPrimary)
             }
-        }.reduce(Text(""), +))
+        }.reduce(Text(""), +)
         .onTapGesture {
             // Find which mention was tapped - for now, just show the first one
             if let firstMention = segments.first(where: { $0.isMention }),
@@ -84,8 +84,7 @@ struct ClickableMentionText: View {
     let onUserTap: (String) -> Void
     @Environment(\.themeColors) var themeColors
 
-    private struct MentionSegment: Identifiable {
-        let id = UUID()
+    private struct MentionSegment {
         let text: String
         let isMention: Bool
         let username: String?
@@ -96,22 +95,22 @@ struct ClickableMentionText: View {
     }
 
     var body: some View {
-        segments.map { segment in
-            if segment.isMention, let username = segment.username {
-                Button {
-                    onUserTap(username)
-                } label: {
-                    Text("@\(username)")
-                        .foregroundColor(themeColors.primary)
-                        .fontWeight(.semibold)
+        HStack(spacing: 0) {
+            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                if segment.isMention, let username = segment.username {
+                    Button {
+                        onUserTap(username)
+                    } label: {
+                        Text("@\(username)")
+                            .foregroundColor(themeColors.primary)
+                            .fontWeight(.semibold)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else {
+                    Text(segment.text)
+                        .foregroundColor(themeColors.textPrimary)
                 }
-                .buttonStyle(PlainButtonStyle())
-            } else {
-                Text(segment.text)
-                    .foregroundColor(themeColors.textPrimary)
             }
-        }.reduce(into: Text("")) { result, text in
-            result = result + text
         }
     }
 

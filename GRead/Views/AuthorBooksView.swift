@@ -10,7 +10,7 @@ struct AuthorBooksView: View {
 
     var body: some View {
         NavigationView {
-            VStack {
+            ZStack {
                 if isLoading {
                     ProgressView("Loading books by \(authorName)...")
                         .padding()
@@ -41,37 +41,46 @@ struct AuthorBooksView: View {
                     }
                     .padding()
                 } else {
-                    List {
-                        ForEach(books) { book in
-                            NavigationLink(destination: BookDetailView(bookId: book.id)) {
-                                HStack(spacing: 12) {
-                                    if let coverUrl = book.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                                        AsyncImage(url: url) { image in
-                                            image.resizable()
-                                        } placeholder: {
-                                            Rectangle()
-                                                .fill(themeColors.textSecondary.opacity(0.2))
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(books, id: \.id) { book in
+                                NavigationLink(destination: BookDetailView(bookId: book.id)) {
+                                    HStack(spacing: 12) {
+                                        if let coverUrl = book.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                                            AsyncImage(url: url) { image in
+                                                image.resizable()
+                                            } placeholder: {
+                                                Rectangle()
+                                                    .fill(themeColors.textSecondary.opacity(0.2))
+                                            }
+                                            .frame(width: 50, height: 75)
+                                            .cornerRadius(4)
                                         }
-                                        .frame(width: 50, height: 75)
-                                        .cornerRadius(4)
-                                    }
 
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(book.title.decodingHTMLEntities)
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(book.title.decodingHTMLEntities)
+                                                .font(.subheadline)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(themeColors.textPrimary)
 
-                                        if let year = book.publicationYear {
-                                            Text(year)
-                                                .font(.caption)
-                                                .foregroundColor(themeColors.textSecondary)
+                                            if let publishedDate = book.publishedDate {
+                                                Text(publishedDate)
+                                                    .font(.caption)
+                                                    .foregroundColor(themeColors.textSecondary)
+                                            }
                                         }
+
+                                        Spacer()
                                     }
+                                    .padding()
                                 }
+                                .buttonStyle(PlainButtonStyle())
+
+                                Divider()
+                                    .padding(.leading, 74)
                             }
                         }
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle("Books by \(authorName)")
@@ -94,7 +103,7 @@ struct AuthorBooksView: View {
         errorMessage = nil
 
         do {
-            let response: BookSearchResponse = try await APIManager.shared.customRequest(
+            let response: [Book] = try await APIManager.shared.customRequest(
                 endpoint: "/books/search?query=\(authorName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")",
                 method: "GET",
                 authenticated: false
@@ -102,7 +111,7 @@ struct AuthorBooksView: View {
 
             await MainActor.run {
                 // Filter books by this specific author
-                books = response.books.filter { book in
+                books = response.filter { book in
                     book.author?.localizedCaseInsensitiveContains(authorName) ?? false
                 }
                 isLoading = false

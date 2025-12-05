@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Utility for decoding HTML entities in text
 struct HTMLDecoder {
