@@ -13,7 +13,6 @@ struct ActivityFeedView: View {
     @State private var showingLoginPrompt = false
     @State private var blockedUserIds: [Int] = []
     @State private var mutedUserIds: [Int] = []
-    @State private var listRefreshID = UUID()
     @State private var showLoginSheet = false
     @State private var isLoadingModeration = false
 
@@ -55,7 +54,7 @@ struct ActivityFeedView: View {
                         }
                     } else {
                         List {
-                            ForEach(organizedActivities, id: \.id) { activity in
+                            ForEach(organizedActivities) { activity in
                                 ThreadedActivityView(
                                     activity: activity,
                                     onUserTap: { userId in
@@ -71,6 +70,7 @@ struct ActivityFeedView: View {
                                         deleteActivity(activityToDelete)
                                     }
                                 )
+                                .id(activity.id)
 
                                 if activity.id == organizedActivities.last?.id && hasMorePages && !isLoading {
                                     ProgressView()
@@ -79,6 +79,7 @@ struct ActivityFeedView: View {
                                                 await loadMoreActivities()
                                             }
                                         }
+                                        .id("loading-\(activity.id)")
                                 }
                             }
 
@@ -87,13 +88,12 @@ struct ActivityFeedView: View {
                                 .frame(height: 60)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
+                                .id("bottom-padding")
                         }
                         .listStyle(.plain)
+                        .animation(.default, value: organizedActivities.map { $0.id })
                         .refreshable {
-                            page = 1
-                            hasMorePages = true
-                            await loadModerationLists()
-                            await loadActivities()
+                            await refreshFeed()
                         }
                     }
                 }
@@ -102,14 +102,32 @@ struct ActivityFeedView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         if !authManager.isGuestMode {
-                            AsyncImage(url: URL(string: authManager.currentUser?.avatarUrl ?? "")) { image in
-                                image.resizable()
-                            } placeholder: {
-                                Image(systemName: "person.circle.fill")
-                                    .foregroundColor(themeColors.primary)
+                            Group {
+                                if let avatarUrl = authManager.currentUser?.avatarUrl,
+                                   let url = URL(string: avatarUrl) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                        case .empty, .failure:
+                                            Image(systemName: "person.circle.fill")
+                                                .foregroundColor(themeColors.primary)
+                                        @unknown default:
+                                            Image(systemName: "person.circle.fill")
+                                                .foregroundColor(themeColors.primary)
+                                        }
+                                    }
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(Circle())
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .foregroundColor(themeColors.primary)
+                                        .frame(width: 32, height: 32)
+                                }
                             }
-                            .frame(width: 32, height: 32)
-                            .clipShape(Circle())
+                            .id(authManager.currentUser?.id ?? -1)
                         }
                     }
 
@@ -177,40 +195,48 @@ struct ActivityFeedView: View {
             .id(1)  // Stable ID to prevent rebuilding when sheet state changes
         }
         .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .newPost:
-                NewActivityView(onPost: {
-                    Task {
-                        page = 1
-                        hasMorePages = true
-                        await loadActivities()
-                    }
-                })
-            case .userProfile(let userId):
-                UserProfileView(
-                    userId: userId,
-                    onModerationTap: { userName in
-                        activeSheet = .moderation(userId: userId, userName: userName)
-                    }
-                )
-                .presentationDetents([.medium, .large])
-            case .moderation(let userId, let userName):
-                ModerationView(userId: userId, userName: userName)
-            case .comments(let activity):
-                CommentView(
-                    activity: activity,
-                    onPost: {
+            Group {
+                switch sheet {
+                case .newPost:
+                    NewActivityView(onPost: {
                         Task {
                             page = 1
                             hasMorePages = true
                             await loadActivities()
                         }
-                    },
-                    onUserTap: { userId in
-                        activeSheet = .userProfile(userId: userId)
-                    }
-                )
+                    })
+                case .userProfile(let userId):
+                    UserProfileView(
+                        userId: userId,
+                        onModerationTap: { userName in
+                            activeSheet = .moderation(userId: userId, userName: userName)
+                        }
+                    )
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                case .moderation(let userId, let userName):
+                    ModerationView(userId: userId, userName: userName)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                case .comments(let activity):
+                    CommentView(
+                        activity: activity,
+                        onPost: {
+                            Task {
+                                page = 1
+                                hasMorePages = true
+                                await loadActivities()
+                            }
+                        },
+                        onUserTap: { userId in
+                            activeSheet = .userProfile(userId: userId)
+                        }
+                    )
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                }
             }
+            .interactiveDismissDisabled(false)
         }
     }
     
@@ -284,6 +310,13 @@ struct ActivityFeedView: View {
         await loadActivities()
     }
 
+    private func refreshFeed() async {
+        page = 1
+        hasMorePages = true
+        await loadModerationLists()
+        await loadActivities()
+    }
+
     private func deleteActivity(_ activity: Activity) {
         Task {
             do {
@@ -292,7 +325,9 @@ struct ActivityFeedView: View {
                     method: "DELETE"
                 )
                 await MainActor.run {
+                    // Remove from both lists atomically
                     activities.removeAll { $0.id == activity.id }
+                    organizedActivities.removeAll { $0.id == activity.id }
                 }
             } catch {
                 await MainActor.run {
@@ -473,6 +508,7 @@ struct ThreadedActivityView: View {
                         onDelete: onDelete,
                         indentLevel: 1
                     )
+                    .id("comment-\(child.id)")
                 }
             }
         }
@@ -530,6 +566,7 @@ struct CommentThreadView: View {
                         onDelete: onDelete,
                         indentLevel: indentLevel + 1
                     )
+                    .id("nested-comment-\(child.id)")
                 }
             }
         }

@@ -17,23 +17,25 @@ struct MentionText: View {
     }
 
     var body: some View {
-        segments.map { segment in
+        let combinedText = segments.reduce(Text("")) { result, segment in
             if segment.isMention, let username = segment.username {
-                return Text("@\(username)")
+                return result + Text("@\(username)")
                     .foregroundColor(themeColors.primary)
                     .fontWeight(.semibold)
             } else {
-                return Text(segment.text)
+                return result + Text(segment.text)
                     .foregroundColor(themeColors.textPrimary)
             }
-        }.reduce(Text(""), +)
-        .onTapGesture {
-            // Find which mention was tapped - for now, just show the first one
-            if let firstMention = segments.first(where: { $0.isMention }),
-               let username = firstMention.username {
-                onUserTap(username)
-            }
         }
+
+        return combinedText
+            .onTapGesture {
+                // Find which mention was tapped - for now, just show the first one
+                if let firstMention = segments.first(where: { $0.isMention }),
+                   let username = firstMention.username {
+                    onUserTap(username)
+                }
+            }
     }
 
     private func parseTextForMentions(_ text: String) -> [TextSegment] {

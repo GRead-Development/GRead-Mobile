@@ -13,7 +13,7 @@ struct MainTabView: View {
     @State private var selectedTab: Int = 0
     @State private var showingProfile = false
     @Environment(\.themeColors) var themeColors
-    @State private var dragOffset: CGFloat = 0
+    @State private var lastHapticTab: Int = -1
     let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
@@ -46,39 +46,13 @@ struct MainTabView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .onChange(of: selectedTab) { _ in
-                hapticFeedback.impactOccurred()
+            .onChange(of: selectedTab) { newValue in
+                // Only trigger haptic if tab actually changed
+                if lastHapticTab != newValue {
+                    hapticFeedback.impactOccurred()
+                    lastHapticTab = newValue
+                }
             }
-            .gesture(
-                DragGesture(minimumDistance: 10, coordinateSpace: .local)
-                    .onChanged { value in
-                        dragOffset = value.translation.width
-                    }
-                    .onEnded { value in
-                        let threshold: CGFloat = 30
-                        let maxTab = 3 // 4 tabs total (0-3)
-
-                        if value.translation.width < -threshold {
-                            // Swiped left - go to next tab
-                            if selectedTab < maxTab {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                    selectedTab += 1
-                                }
-                            }
-                        } else if value.translation.width > threshold {
-                            // Swiped right - go to previous tab
-                            if selectedTab > 0 {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                    selectedTab -= 1
-                                }
-                            }
-                        }
-
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            dragOffset = 0
-                        }
-                    }
-            )
 
             // Custom Frosted Glass Tab Bar
             VStack(spacing: 0) {
