@@ -673,6 +673,7 @@ struct CommentView: View {
     @State private var isPosting = false
     @State private var commentError: String?
     @State private var userCache: [Int: User] = [:]
+    @State private var replyingTo: Activity? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -732,7 +733,10 @@ struct CommentView: View {
                                     comment: comment,
                                     user: comment.userId.flatMap { userCache[$0] },
                                     userCache: userCache,
-                                    onUserTap: onUserTap
+                                    onUserTap: onUserTap,
+                                    onReply: { comment in
+                                        replyingTo = comment
+                                    }
                                 )
                             }
                         }
@@ -749,29 +753,49 @@ struct CommentView: View {
 
             Divider()
 
-            HStack(spacing: 12) {
-                TextField("Add a comment...", text: $commentText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .padding(12)
-                    .background(themeColors.textSecondary.opacity(0.1))
-                    .cornerRadius(20)
-                    .lineLimit(1...5)
-
-                Button {
-                    postComment()
-                } label: {
-                    if isPosting {
-                        ProgressView()
-                            .scaleEffect(0.9)
-                    } else {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(commentText.isEmpty ? themeColors.textSecondary : themeColors.primary)
+            VStack(spacing: 8) {
+                // Reply indicator
+                if let replyingTo = replyingTo {
+                    HStack {
+                        Text("Replying to \(replyingTo.bestUserName)")
+                            .font(.caption)
+                            .foregroundColor(themeColors.textSecondary)
+                        Spacer()
+                        Button {
+                            self.replyingTo = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(themeColors.textSecondary)
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                 }
-                .disabled(commentText.isEmpty || isPosting)
-                .animation(.easeInOut(duration: 0.2), value: isPosting)
+
+                HStack(spacing: 12) {
+                    TextField("Add a comment...", text: $commentText, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .padding(12)
+                        .background(themeColors.textSecondary.opacity(0.1))
+                        .cornerRadius(20)
+                        .lineLimit(1...5)
+
+                    Button {
+                        postComment()
+                    } label: {
+                        if isPosting {
+                            ProgressView()
+                                .scaleEffect(0.9)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(commentText.isEmpty ? themeColors.textSecondary : themeColors.primary)
+                        }
+                    }
+                    .disabled(commentText.isEmpty || isPosting)
+                    .animation(.easeInOut(duration: 0.2), value: isPosting)
+                }
+                .padding()
             }
-            .padding()
         }
         .task {
             await loadUsersForComments()
@@ -819,9 +843,14 @@ struct CommentView: View {
         commentError = nil
         Task {
             do {
+                // Use the replyingTo ID if replying to a comment, otherwise use the activity ID
+                let parentId = replyingTo?.id ?? activity.id
+
                 let body: [String: Any] = [
                     "content": commentText,
-                    "parent": activity.id
+                    "parent": parentId,
+                    "type": "activity_comment",
+                    "component": "activity"
                 ]
 
                 let _: AnyCodable = try await APIManager.shared.request(
@@ -832,6 +861,7 @@ struct CommentView: View {
 
                 await MainActor.run {
                     commentText = ""
+                    replyingTo = nil
                     isPosting = false
                     onPost()
                     // Dismiss the comment view to show the nested comment in the main feed
@@ -853,6 +883,7 @@ struct CommentItemView: View {
     let user: User?
     let userCache: [Int: User]
     let onUserTap: (Int) -> Void
+    let onReply: (Activity) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -936,6 +967,16 @@ struct CommentItemView: View {
                     .lineLimit(nil)
             }
 
+            // Reply button
+            Button {
+                onReply(comment)
+            } label: {
+                Text("Reply")
+                    .font(.caption2)
+                    .foregroundColor(themeColors.primary)
+            }
+            .padding(.top, 4)
+
             // Recursively show nested replies if any
             if let children = comment.children, !children.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -947,7 +988,8 @@ struct CommentItemView: View {
                             comment: child,
                             user: child.userId.flatMap { userCache[$0] },
                             userCache: userCache,
-                            onUserTap: onUserTap
+                            onUserTap: onUserTap,
+                            onReply: onReply
                         )
                         .padding(.leading, 8)
                     }

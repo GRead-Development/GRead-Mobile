@@ -407,53 +407,70 @@ class APIManager {
 
     /// Get list of friends for a user
     func getFriends(userId: Int) async throws -> FriendsListResponse {
-        return try await customRequest(
-            endpoint: "/friends/\(userId)",
+        // BuddyPress friends endpoint with user_id parameter and is_confirmed=1 for confirmed friends
+        return try await request(
+            endpoint: "/friends?user_id=\(userId)&is_confirmed=1",
             authenticated: false
         )
     }
 
     /// Get pending friend requests for the current user
     func getPendingFriendRequests() async throws -> PendingRequestsResponse {
-        return try await customRequest(
-            endpoint: "/friends/requests/pending",
+        guard let userId = AuthManager.shared.currentUser?.id else {
+            throw APIError.invalidResponse
+        }
+
+        // BuddyPress friends endpoint with is_confirmed=0 to get pending requests
+        return try await request(
+            endpoint: "/friends?user_id=\(userId)&is_confirmed=0",
             authenticated: true
         )
     }
 
     /// Send a friend request to another user
     func sendFriendRequest(friendId: Int) async throws -> FriendRequestResponse {
-        return try await customRequest(
-            endpoint: "/friends/request",
+        guard let userId = AuthManager.shared.currentUser?.id else {
+            throw APIError.invalidResponse
+        }
+
+        // BuddyPress friends endpoint - POST to create friendship
+        return try await request(
+            endpoint: "/friends",
             method: "POST",
-            body: ["friend_id": friendId],
+            body: [
+                "initiator_id": userId,
+                "friend_id": friendId
+            ],
             authenticated: true
         )
     }
 
     /// Accept a friend request
     func acceptFriendRequest(requestId: Int) async throws -> FriendRequestResponse {
-        return try await customRequest(
-            endpoint: "/friends/request/\(requestId)/accept",
-            method: "POST",
+        // BuddyPress friends endpoint - PUT to accept friendship
+        return try await request(
+            endpoint: "/friends/\(requestId)",
+            method: "PUT",
             authenticated: true
         )
     }
 
     /// Reject a friend request
     func rejectFriendRequest(requestId: Int) async throws -> FriendRequestResponse {
-        return try await customRequest(
-            endpoint: "/friends/request/\(requestId)/reject",
-            method: "POST",
+        // BuddyPress friends endpoint - DELETE to reject/remove friendship
+        return try await request(
+            endpoint: "/friends/\(requestId)",
+            method: "DELETE",
             authenticated: true
         )
     }
 
     /// Remove a friend
     func removeFriend(friendId: Int) async throws -> FriendRequestResponse {
-        return try await customRequest(
-            endpoint: "/friends/\(friendId)/remove",
-            method: "POST",
+        // BuddyPress friends endpoint - DELETE to remove friendship
+        return try await request(
+            endpoint: "/friends/\(friendId)",
+            method: "DELETE",
             authenticated: true
         )
     }
@@ -854,6 +871,139 @@ class APIManager {
             Logger.error("Failed to add book to library: \(error)")
             throw error
         }
+    }
+
+    // MARK: - Notes API
+
+    /// Get notes for a specific book
+    func getBookNotes(bookId: Int, type: String = "all") async throws -> NotesResponse {
+        Logger.debug("Fetching notes for book \(bookId) with type: \(type)")
+
+        let response: NotesResponse = try await customRequest(
+            endpoint: "/book/\(bookId)/notes?type=\(type)",
+            method: "GET",
+            authenticated: true
+        )
+
+        Logger.debug("Fetched \(response.count ?? 0) notes")
+        return response
+    }
+
+    /// Get a single note by ID
+    func getNote(noteId: Int) async throws -> NoteResponse {
+        Logger.debug("Fetching note \(noteId)")
+
+        let response: NoteResponse = try await customRequest(
+            endpoint: "/notes/\(noteId)",
+            method: "GET",
+            authenticated: true
+        )
+
+        return response
+    }
+
+    /// Create a new note
+    func createNote(bookId: Int, noteText: String, pageNumber: Int?, isPublic: Bool) async throws -> NoteResponse {
+        Logger.debug("Creating note for book \(bookId)")
+
+        var body: [String: Any] = [
+            "book_id": bookId,
+            "note_text": noteText,
+            "is_public": isPublic
+        ]
+
+        if let page = pageNumber {
+            body["page_number"] = page
+        }
+
+        let response: NoteResponse = try await customRequest(
+            endpoint: "/notes",
+            method: "POST",
+            body: body,
+            authenticated: true
+        )
+
+        Logger.debug("Note created successfully")
+        return response
+    }
+
+    /// Update an existing note
+    func updateNote(noteId: Int, noteText: String?, pageNumber: Int?, isPublic: Bool?) async throws -> NoteResponse {
+        Logger.debug("Updating note \(noteId)")
+
+        var body: [String: Any] = [:]
+
+        if let text = noteText {
+            body["note_text"] = text
+        }
+
+        if let page = pageNumber {
+            body["page_number"] = page
+        }
+
+        if let public = isPublic {
+            body["is_public"] = public
+        }
+
+        let response: NoteResponse = try await customRequest(
+            endpoint: "/notes/\(noteId)",
+            method: "PUT",
+            body: body,
+            authenticated: true
+        )
+
+        Logger.debug("Note updated successfully")
+        return response
+    }
+
+    /// Delete a note
+    func deleteNote(noteId: Int) async throws {
+        Logger.debug("Deleting note \(noteId)")
+
+        struct DeleteResponse: Codable {
+            let success: Bool
+            let message: String?
+        }
+
+        let response: DeleteResponse = try await customRequest(
+            endpoint: "/notes/\(noteId)",
+            method: "DELETE",
+            authenticated: true
+        )
+
+        if !response.success {
+            throw APIError.invalidResponse
+        }
+
+        Logger.debug("Note deleted successfully")
+    }
+
+    /// Like a note
+    func likeNote(noteId: Int) async throws -> NoteLikeResponse {
+        Logger.debug("Liking note \(noteId)")
+
+        let response: NoteLikeResponse = try await customRequest(
+            endpoint: "/notes/\(noteId)/like",
+            method: "POST",
+            authenticated: true
+        )
+
+        Logger.debug("Note liked, new count: \(response.likeCount)")
+        return response
+    }
+
+    /// Unlike a note
+    func unlikeNote(noteId: Int) async throws -> NoteLikeResponse {
+        Logger.debug("Unliking note \(noteId)")
+
+        let response: NoteLikeResponse = try await customRequest(
+            endpoint: "/notes/\(noteId)/unlike",
+            method: "POST",
+            authenticated: true
+        )
+
+        Logger.debug("Note unliked, new count: \(response.likeCount)")
+        return response
     }
 }
 

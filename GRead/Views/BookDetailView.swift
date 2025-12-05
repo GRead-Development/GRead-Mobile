@@ -10,6 +10,7 @@ struct BookDetailView: View {
     @State private var errorMessage: String?
     @State private var showProgressEditor = false
     @State private var showAddToLibrary = false
+    @State private var showNotes = false
 
     // Check if this book is in the user's library
     var libraryItem: LibraryItem? {
@@ -199,6 +200,21 @@ struct BookDetailView: View {
 
                     // Action Buttons
                     VStack(spacing: 12) {
+                        // Notes button (always visible)
+                        Button {
+                            showNotes = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "note.text")
+                                Text("View Notes")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(themeColors.accent.opacity(0.2))
+                            .foregroundColor(themeColors.accent)
+                            .cornerRadius(12)
+                        }
+
                         if isInLibrary, let item = libraryItem {
                             Button {
                                 showProgressEditor = true
@@ -275,6 +291,12 @@ struct BookDetailView: View {
                 bookId: bookId,
                 totalPages: bookDetail?.pageCount ?? 0
             )
+        }
+        .fullScreenCover(isPresented: $showNotes) {
+            if let book = bookDetail {
+                BookNotesView(bookId: bookId, bookTitle: book.title)
+                    .environmentObject(AuthManager.shared)
+            }
         }
         .task {
             await loadBookDetail()
