@@ -15,6 +15,7 @@ struct AchievementsView: View {
     @State private var errorMessage: String?
     @State private var selectedFilter: AchievementFilter = .all
     @State private var showLeaderboard = false
+    @State private var isGridView = false
     @Environment(\.themeColors) var themeColors
 
     enum AchievementFilter: String, CaseIterable {
@@ -45,7 +46,11 @@ struct AchievementsView: View {
         }
         .navigationTitle("Achievements")
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button(action: { isGridView.toggle() }) {
+                    Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
+                        .foregroundColor(themeColors.primary)
+                }
                 Button(action: { showLeaderboard.toggle() }) {
                     Image(systemName: "chart.bar.fill")
                         .foregroundColor(themeColors.primary)
@@ -151,12 +156,24 @@ struct AchievementsView: View {
 
             // Achievements list
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(filteredAchievements) { achievement in
-                        AchievementCard(achievement: achievement)
+                if isGridView {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
+                        ForEach(filteredAchievements) { achievement in
+                            AchievementGridCard(achievement: achievement)
+                        }
                     }
+                    .padding()
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(filteredAchievements) { achievement in
+                            AchievementCard(achievement: achievement)
+                        }
+                    }
+                    .padding()
                 }
-                .padding()
             }
         }
     }
@@ -257,6 +274,11 @@ struct AchievementCard: View {
         achievement.progress?.percentage ?? 0
     }
 
+    private var shouldShowDetails: Bool {
+        // Show details if unlocked, or if not hidden
+        isUnlocked || !achievement.isHidden
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             // Icon
@@ -265,15 +287,22 @@ struct AchievementCard: View {
                     .fill(hexColor(achievement.icon.color).opacity(isUnlocked ? 1.0 : 0.3))
                     .frame(width: 60, height: 60)
 
-                Text(achievement.icon.symbol)
-                    .font(.system(size: 30))
-                    .opacity(isUnlocked ? 1.0 : 0.5)
+                if shouldShowDetails {
+                    Text(achievement.icon.symbol)
+                        .font(.system(size: 30))
+                        .opacity(isUnlocked ? 1.0 : 0.5)
+                } else {
+                    // Show question mark for hidden locked achievements
+                    Text("?")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(themeColors.textSecondary.opacity(0.5))
+                }
             }
 
             // Details
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(achievement.name)
+                    Text(shouldShowDetails ? achievement.name : "Hidden Achievement")
                         .font(.headline)
                         .foregroundColor(isUnlocked ? themeColors.textPrimary : themeColors.textSecondary)
 
@@ -286,8 +315,13 @@ struct AchievementCard: View {
                     }
                 }
 
-                if !achievement.description.isEmpty {
+                if shouldShowDetails && !achievement.description.isEmpty {
                     Text(achievement.description)
+                        .font(.caption)
+                        .foregroundColor(themeColors.textSecondary)
+                        .lineLimit(2)
+                } else if !shouldShowDetails {
+                    Text("This achievement is hidden until unlocked")
                         .font(.caption)
                         .foregroundColor(themeColors.textSecondary)
                         .lineLimit(2)
@@ -380,6 +414,112 @@ struct AchievementCard: View {
         } else {
             return "just now"
         }
+    }
+}
+
+// MARK: - Achievement Grid Card Component
+
+struct AchievementGridCard: View {
+    let achievement: Achievement
+    @Environment(\.themeColors) var themeColors
+
+    private var isUnlocked: Bool {
+        achievement.isUnlocked ?? false
+    }
+
+    private var progressPercentage: Double {
+        achievement.progress?.percentage ?? 0
+    }
+
+    private var shouldShowDetails: Bool {
+        isUnlocked || !achievement.isHidden
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(hexColor(achievement.icon.color).opacity(isUnlocked ? 1.0 : 0.3))
+                    .frame(width: 70, height: 70)
+
+                if shouldShowDetails {
+                    Text(achievement.icon.symbol)
+                        .font(.system(size: 36))
+                        .opacity(isUnlocked ? 1.0 : 0.5)
+                } else {
+                    Text("?")
+                        .font(.system(size: 42, weight: .bold))
+                        .foregroundColor(themeColors.textSecondary.opacity(0.5))
+                }
+            }
+
+            // Name
+            Text(shouldShowDetails ? achievement.name : "Hidden")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(isUnlocked ? themeColors.textPrimary : themeColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(height: 32)
+
+            // Progress bar for locked achievements
+            if !isUnlocked, let progress = achievement.progress, shouldShowDetails {
+                VStack(spacing: 2) {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Rectangle()
+                                .fill(themeColors.textSecondary.opacity(0.2))
+                                .frame(height: 4)
+                                .cornerRadius(2)
+
+                            Rectangle()
+                                .fill(themeColors.primary)
+                                .frame(width: geometry.size.width * CGFloat(progressPercentage / 100), height: 4)
+                                .cornerRadius(2)
+                        }
+                    }
+                    .frame(height: 4)
+
+                    Text("\(Int(progressPercentage))%")
+                        .font(.caption2)
+                        .foregroundColor(themeColors.textSecondary)
+                }
+            } else if isUnlocked {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(themeColors.success)
+                    .font(.caption)
+            } else {
+                Text("???")
+                    .font(.caption2)
+                    .foregroundColor(themeColors.textSecondary)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(themeColors.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    isUnlocked ? themeColors.success.opacity(0.5) : themeColors.border,
+                    lineWidth: isUnlocked ? 2 : 1
+                )
+        )
+    }
+
+    private func hexColor(_ hex: String) -> Color {
+        var cleanHex = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        cleanHex = cleanHex.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+        Scanner(string: cleanHex).scanHexInt64(&rgb)
+
+        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgb & 0x0000FF) / 255.0
+
+        return Color(red: r, green: g, blue: b)
     }
 }
 
