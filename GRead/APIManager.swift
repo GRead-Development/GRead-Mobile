@@ -941,8 +941,8 @@ class APIManager {
             body["page_number"] = page
         }
 
-        if let public = isPublic {
-            body["is_public"] = public
+        if let publicValue = isPublic {
+            body["is_public"] = publicValue
         }
 
         let response: NoteResponse = try await customRequest(
