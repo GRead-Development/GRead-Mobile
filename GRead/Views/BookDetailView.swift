@@ -11,6 +11,7 @@ struct BookDetailView: View {
     @State private var showProgressEditor = false
     @State private var showAddToLibrary = false
     @State private var showNotes = false
+    @State private var showAuthorBooks = false
 
     // Check if this book is in the user's library
     var libraryItem: LibraryItem? {
@@ -106,9 +107,18 @@ struct BookDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         if let author = book.author {
-                            Text(author.decodingHTMLEntities)
-                                .font(.title3)
-                                .foregroundColor(themeColors.textSecondary)
+                            Button {
+                                showAuthorBooks = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(author.decodingHTMLEntities)
+                                        .font(.title3)
+                                        .foregroundColor(themeColors.textSecondary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(themeColors.textSecondary)
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -296,6 +306,11 @@ struct BookDetailView: View {
             if let book = bookDetail {
                 BookNotesView(bookId: bookId, bookTitle: book.title)
                     .environmentObject(AuthManager.shared)
+            }
+        }
+        .fullScreenCover(isPresented: $showAuthorBooks) {
+            if let author = bookDetail?.author {
+                AuthorBooksView(authorName: author)
             }
         }
         .task {

@@ -543,6 +543,7 @@ struct ActivityRowView: View {
     let onReport: () -> Void
     let indentLevel: Int
     @Environment(\.themeColors) var themeColors
+    @State private var mentionedUsername: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -634,10 +635,24 @@ struct ActivityRowView: View {
             }
             
             if let content = activity.content, !content.isEmpty {
-                Text(content.decodingHTMLEntities.stripHTML())
-                    .font(.body)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
+                ClickableMentionText(
+                    text: content.decodingHTMLEntities.stripHTML(),
+                    onUserTap: { username in
+                        mentionedUsername = username
+                    }
+                )
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
+                .sheet(item: Binding(
+                    get: { mentionedUsername.map { UsernameMention(username: $0) } },
+                    set: { mentionedUsername = $0?.username }
+                )) { mention in
+                    UserSearchSheet(username: mention.username, onUserSelected: { userId in
+                        mentionedUsername = nil
+                        onUserTap(userId)
+                    })
+                }
             }
             
             // Only show comment button for top-level posts
@@ -1083,6 +1098,102 @@ struct NewActivityView: View {
                     errorMessage = "Failed to post: \(error.localizedDescription)"
                     isPosting = false
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Helper Types
+struct UsernameMention: Identifiable {
+    let id = UUID()
+    let username: String
+}
+
+struct UserSearchSheet: View {
+    let username: String
+    let onUserSelected: (Int) -> Void
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
+    @State private var users: [User] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                if isLoading {
+                    ProgressView("Searching for @\(username)...")
+                } else if users.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.fill.questionmark")
+                            .font(.system(size: 50))
+                            .foregroundColor(themeColors.textSecondary)
+                        Text("User not found")
+                            .font(.headline)
+                        Text("No user found with username @\(username)")
+                            .font(.caption)
+                            .foregroundColor(themeColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                } else {
+                    List(users) { user in
+                        Button {
+                            onUserSelected(user.id)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                AsyncImage(url: URL(string: user.avatarUrl)) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    Image(systemName: "person.circle.fill")
+                                        .foregroundColor(themeColors.primary)
+                                }
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+
+                                VStack(alignment: .leading) {
+                                    Text(user.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    if let username = user.userLogin {
+                                        Text("@\(username)")
+                                            .font(.caption)
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("@\(username)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await searchUser()
+            }
+        }
+    }
+
+    private func searchUser() async {
+        isLoading = true
+        do {
+            let response: UserSearchResponse = try await APIManager.shared.searchUsers(query: username)
+            await MainActor.run {
+                users = response.users.filter { user in
+                    user.userLogin?.lowercased() == username.lowercased()
+                }
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                users = []
+                isLoading = false
             }
         }
     }
