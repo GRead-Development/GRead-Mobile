@@ -17,32 +17,46 @@ struct MainTabView: View {
     let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
-        NavigationView {
-            ZStack(alignment: .bottom) {
-                // Background color that extends into safe areas
-                themeColors.background
-                    .ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            // Background color that extends into safe areas
+            themeColors.background
+                .ignoresSafeArea()
 
-                TabView(selection: $selectedTab) {
-                DashboardView()
-                    .environmentObject(authManager)
-                    .tag(0)
+            TabView(selection: $selectedTab) {
+                NavigationView {
+                    DashboardView()
+                        .environmentObject(authManager)
+                }
+                .navigationViewStyle(.stack)
+                .tag(0)
 
-                ActivityFeedView()
-                    .environmentObject(authManager)
-                    .tag(1)
+                NavigationView {
+                    ActivityFeedView()
+                        .environmentObject(authManager)
+                }
+                .navigationViewStyle(.stack)
+                .tag(1)
 
-                LibraryView()
-                    .environmentObject(authManager)
-                    .tag(2)
+                NavigationView {
+                    LibraryView()
+                        .environmentObject(authManager)
+                }
+                .navigationViewStyle(.stack)
+                .tag(2)
 
                 if authManager.isAuthenticated {
-                    ProfileView()
-                        .tag(3)
+                    NavigationView {
+                        ProfileView()
+                    }
+                    .navigationViewStyle(.stack)
+                    .tag(3)
                 } else {
-                    GuestProfileView()
-                        .environmentObject(authManager)
-                        .tag(3)
+                    NavigationView {
+                        GuestProfileView()
+                            .environmentObject(authManager)
+                    }
+                    .navigationViewStyle(.stack)
+                    .tag(3)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
@@ -138,9 +152,6 @@ struct MainTabView: View {
                 .allowsHitTesting(false)
             }
         }
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .navigationViewStyle(.stack)
     }
 }
 
