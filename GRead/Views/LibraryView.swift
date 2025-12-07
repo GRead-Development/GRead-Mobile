@@ -21,10 +21,19 @@ struct LibraryView: View {
     @State private var isGridView = false
 
     var filteredItems: [LibraryItem] {
+        // Auto-mark as completed if progress equals page count
+        let items = libraryManager.libraryItems.map { item -> LibraryItem in
+            var mutableItem = item
+            if let totalPages = item.book?.totalPages, totalPages > 0, item.currentPage >= totalPages {
+                mutableItem.status = "completed"
+            }
+            return mutableItem
+        }
+
         // Filter by status (reading by default, include completed if toggled)
         let statusFiltered = showCompleted
-            ? libraryManager.libraryItems
-            : libraryManager.libraryItems.filter { $0.status == "reading" }
+            ? items
+            : items.filter { $0.status == "reading" }
 
         // Apply search filter if needed
         let searchFiltered: [LibraryItem]
@@ -299,6 +308,7 @@ struct LibraryItemCard: View {
             HStack(alignment: .top, spacing: 12) {
                 // Book Cover
                 if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                    let _ = print("🖼️ Loading cover for \(libraryItem.book?.title ?? "Unknown"): \(coverUrl)")
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -311,7 +321,8 @@ struct LibraryItemCard: View {
                                 .frame(width: 60, height: 90)
                                 .clipped()
                                 .cornerRadius(6)
-                        case .failure:
+                        case .failure(let error):
+                            let _ = print("❌ Failed to load cover for \(libraryItem.book?.title ?? "Unknown"): \(error)")
                             Image(systemName: "book.fill")
                                 .font(.system(size: 30))
                                 .foregroundColor(themeColors.textSecondary)
