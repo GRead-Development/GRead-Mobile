@@ -118,7 +118,9 @@ extension AppleSignInManager: ASAuthorizationControllerPresentationContextProvid
 
 // MARK: - Supporting Types
 
-struct AppleSignInResult {
+struct AppleSignInResult: Identifiable {
+    var id: String { userIdentifier }
+
     let userIdentifier: String
     let identityToken: String
     let authorizationCode: String

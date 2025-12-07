@@ -5,7 +5,6 @@ struct LandingView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
     @State private var showLoginRegister = false
-    @State private var showUsernameSelection = false
     @State private var appleSignInResult: AppleSignInResult?
     @State private var isSigningIn = false
     @State private var errorMessage: String?
@@ -109,11 +108,9 @@ struct LandingView: View {
                 .padding(.vertical, 32)
             }
             .navigationBarHidden(true)
-            .sheet(isPresented: $showUsernameSelection) {
-                if let result = appleSignInResult {
-                    AppleUsernameSelectionView(appleSignInResult: result)
-                        .environmentObject(authManager)
-                }
+            .sheet(item: $appleSignInResult) { result in
+                AppleUsernameSelectionView(appleSignInResult: result)
+                    .environmentObject(authManager)
             }
         }
     }
@@ -180,7 +177,6 @@ struct LandingView: View {
                                 email: appleIDCredential.email,
                                 fullName: appleIDCredential.fullName
                             )
-                            showUsernameSelection = true
                             isSigningIn = false
                         }
                     } else {
