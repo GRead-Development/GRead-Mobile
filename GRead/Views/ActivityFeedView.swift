@@ -543,6 +543,7 @@ struct ActivityRowView: View {
     let onReport: () -> Void
     let indentLevel: Int
     @Environment(\.themeColors) var themeColors
+    @State private var mentionedUsername: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -634,10 +635,24 @@ struct ActivityRowView: View {
             }
             
             if let content = activity.content, !content.isEmpty {
-                Text(content.decodingHTMLEntities.stripHTML())
-                    .font(.body)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
+                ClickableMentionText(
+                    text: content.decodingHTMLEntities.stripHTML(),
+                    onUserTap: { username in
+                        mentionedUsername = username
+                    }
+                )
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
+                .sheet(item: Binding(
+                    get: { mentionedUsername.map { UsernameMention(username: $0) } },
+                    set: { mentionedUsername = $0?.username }
+                )) { mention in
+                    UserSearchSheet(username: mention.username, onUserSelected: { userId in
+                        mentionedUsername = nil
+                        onUserTap(userId)
+                    })
+                }
             }
             
             // Only show comment button for top-level posts
@@ -673,6 +688,7 @@ struct CommentView: View {
     @State private var isPosting = false
     @State private var commentError: String?
     @State private var userCache: [Int: User] = [:]
+    @State private var replyingTo: Activity? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -732,7 +748,10 @@ struct CommentView: View {
                                     comment: comment,
                                     user: comment.userId.flatMap { userCache[$0] },
                                     userCache: userCache,
-                                    onUserTap: onUserTap
+                                    onUserTap: onUserTap,
+                                    onReply: { comment in
+                                        replyingTo = comment
+                                    }
                                 )
                             }
                         }
@@ -749,29 +768,49 @@ struct CommentView: View {
 
             Divider()
 
-            HStack(spacing: 12) {
-                TextField("Add a comment...", text: $commentText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .padding(12)
-                    .background(themeColors.textSecondary.opacity(0.1))
-                    .cornerRadius(20)
-                    .lineLimit(1...5)
-
-                Button {
-                    postComment()
-                } label: {
-                    if isPosting {
-                        ProgressView()
-                            .scaleEffect(0.9)
-                    } else {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(commentText.isEmpty ? themeColors.textSecondary : themeColors.primary)
+            VStack(spacing: 8) {
+                // Reply indicator
+                if let replyingTo = replyingTo {
+                    HStack {
+                        Text("Replying to \(replyingTo.bestUserName)")
+                            .font(.caption)
+                            .foregroundColor(themeColors.textSecondary)
+                        Spacer()
+                        Button {
+                            self.replyingTo = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(themeColors.textSecondary)
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                 }
-                .disabled(commentText.isEmpty || isPosting)
-                .animation(.easeInOut(duration: 0.2), value: isPosting)
+
+                HStack(spacing: 12) {
+                    TextField("Add a comment...", text: $commentText, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .padding(12)
+                        .background(themeColors.textSecondary.opacity(0.1))
+                        .cornerRadius(20)
+                        .lineLimit(1...5)
+
+                    Button {
+                        postComment()
+                    } label: {
+                        if isPosting {
+                            ProgressView()
+                                .scaleEffect(0.9)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(commentText.isEmpty ? themeColors.textSecondary : themeColors.primary)
+                        }
+                    }
+                    .disabled(commentText.isEmpty || isPosting)
+                    .animation(.easeInOut(duration: 0.2), value: isPosting)
+                }
+                .padding()
             }
-            .padding()
         }
         .task {
             await loadUsersForComments()
@@ -819,9 +858,14 @@ struct CommentView: View {
         commentError = nil
         Task {
             do {
+                // Use the replyingTo ID if replying to a comment, otherwise use the activity ID
+                let parentId = replyingTo?.id ?? activity.id
+
                 let body: [String: Any] = [
                     "content": commentText,
-                    "parent": activity.id
+                    "parent": parentId,
+                    "type": "activity_comment",
+                    "component": "activity"
                 ]
 
                 let _: AnyCodable = try await APIManager.shared.request(
@@ -832,6 +876,7 @@ struct CommentView: View {
 
                 await MainActor.run {
                     commentText = ""
+                    replyingTo = nil
                     isPosting = false
                     onPost()
                     // Dismiss the comment view to show the nested comment in the main feed
@@ -853,6 +898,7 @@ struct CommentItemView: View {
     let user: User?
     let userCache: [Int: User]
     let onUserTap: (Int) -> Void
+    let onReply: (Activity) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -936,6 +982,16 @@ struct CommentItemView: View {
                     .lineLimit(nil)
             }
 
+            // Reply button
+            Button {
+                onReply(comment)
+            } label: {
+                Text("Reply")
+                    .font(.caption2)
+                    .foregroundColor(themeColors.primary)
+            }
+            .padding(.top, 4)
+
             // Recursively show nested replies if any
             if let children = comment.children, !children.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -947,7 +1003,8 @@ struct CommentItemView: View {
                             comment: child,
                             user: child.userId.flatMap { userCache[$0] },
                             userCache: userCache,
-                            onUserTap: onUserTap
+                            onUserTap: onUserTap,
+                            onReply: onReply
                         )
                         .padding(.leading, 8)
                     }
@@ -1041,6 +1098,102 @@ struct NewActivityView: View {
                     errorMessage = "Failed to post: \(error.localizedDescription)"
                     isPosting = false
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Helper Types
+struct UsernameMention: Identifiable {
+    let id = UUID()
+    let username: String
+}
+
+struct UserSearchSheet: View {
+    let username: String
+    let onUserSelected: (Int) -> Void
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.themeColors) var themeColors
+    @State private var users: [User] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                if isLoading {
+                    ProgressView("Searching for @\(username)...")
+                } else if users.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.fill.questionmark")
+                            .font(.system(size: 50))
+                            .foregroundColor(themeColors.textSecondary)
+                        Text("User not found")
+                            .font(.headline)
+                        Text("No user found with username @\(username)")
+                            .font(.caption)
+                            .foregroundColor(themeColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                } else {
+                    List(users) { user in
+                        Button {
+                            onUserSelected(user.id)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                AsyncImage(url: URL(string: user.avatarUrl)) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    Image(systemName: "person.circle.fill")
+                                        .foregroundColor(themeColors.primary)
+                                }
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+
+                                VStack(alignment: .leading) {
+                                    Text(user.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    if let username = user.userLogin {
+                                        Text("@\(username)")
+                                            .font(.caption)
+                                            .foregroundColor(themeColors.textSecondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("@\(username)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await searchUser()
+            }
+        }
+    }
+
+    private func searchUser() async {
+        isLoading = true
+        do {
+            let response: UserSearchResponse = try await APIManager.shared.searchUsers(query: username)
+            await MainActor.run {
+                users = response.users.filter { user in
+                    user.userLogin?.lowercased() == username.lowercased()
+                }
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                users = []
+                isLoading = false
             }
         }
     }

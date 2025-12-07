@@ -18,6 +18,7 @@ struct LibraryView: View {
     @State private var showCompleted = false
     @State private var listRefreshID = UUID()
     @State private var sortOption: LibrarySortOption = .recentlyModified
+    @State private var isGridView = false
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
@@ -154,46 +155,70 @@ struct LibraryView: View {
                         .padding(.vertical, 12)
                         .background(themeColors.cardBackground)
 
-                        // Library Items List
+                        // Library Items - List or Grid View
                         ScrollView {
-                            VStack(spacing: 12) {
-                                if libraryManager.isLoading && libraryManager.libraryItems.isEmpty {
-                                    ProgressView()
-                                        .padding()
-                                }
-
-                                ForEach(filteredItems, id: \.id) { item in
-                                    if let bookId = item.book?.id {
-                                        NavigationLink(destination: BookDetailView(bookId: bookId)) {
-                                            LibraryItemCard(libraryItem: item, onDelete: {
-                                                deleteBook(item)
-                                            }, onProgressUpdate: { newPage in
-                                                updateProgress(item: item, currentPage: newPage)
-                                            })
+                            if libraryManager.isLoading && libraryManager.libraryItems.isEmpty {
+                                ProgressView()
+                                    .padding()
+                            } else {
+                                if isGridView {
+                                    // Grid View
+                                    LazyVGrid(columns: [
+                                        GridItem(.flexible(), spacing: 12),
+                                        GridItem(.flexible(), spacing: 12)
+                                    ], spacing: 12) {
+                                        ForEach(filteredItems, id: \.id) { item in
+                                            if let bookId = item.book?.id {
+                                                NavigationLink(destination: BookDetailView(bookId: bookId)) {
+                                                    LibraryGridItemCard(libraryItem: item)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                            } else {
+                                                LibraryGridItemCard(libraryItem: item)
+                                            }
                                         }
-                                        .buttonStyle(PlainButtonStyle())
-                                    } else {
-                                        LibraryItemCard(libraryItem: item, onDelete: {
-                                            deleteBook(item)
-                                        }, onProgressUpdate: { newPage in
-                                            updateProgress(item: item, currentPage: newPage)
-                                        })
+                                    }
+                                    .padding()
+                                } else {
+                                    // List View
+                                    VStack(spacing: 12) {
+                                        ForEach(filteredItems, id: \.id) { item in
+                                            if let bookId = item.book?.id {
+                                                NavigationLink(destination: BookDetailView(bookId: bookId)) {
+                                                    LibraryItemCard(libraryItem: item, onDelete: {
+                                                        deleteBook(item)
+                                                    }, onProgressUpdate: { newPage in
+                                                        updateProgress(item: item, currentPage: newPage)
+                                                    })
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                            } else {
+                                                LibraryItemCard(libraryItem: item, onDelete: {
+                                                    deleteBook(item)
+                                                }, onProgressUpdate: { newPage in
+                                                    updateProgress(item: item, currentPage: newPage)
+                                                })
+                                            }
+                                        }
+                                        .padding()
                                     }
                                 }
-                                .padding()
 
                                 // Bottom padding to prevent tab bar overlap
                                 Color.clear
                                     .frame(height: 80)
                             }
-                            .id(listRefreshID)
                         }
+                        .id(listRefreshID)
                     }
                 }
             }
             .navigationTitle("My Library")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button(action: { isGridView.toggle() }) {
+                        Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
+                    }
                     Button(action: { showBarcodeScanner = true }) {
                         Image(systemName: "barcode.viewfinder")
                     }
@@ -872,6 +897,109 @@ struct ISBNImportSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Library Grid Item Card
+struct LibraryGridItemCard: View {
+    let libraryItem: LibraryItem
+    @Environment(\.themeColors) var themeColors
+
+    var progress: Double {
+        guard let totalPages = libraryItem.book?.totalPages, totalPages > 0 else { return 0 }
+        return Double(libraryItem.currentPage) / Double(totalPages)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Book Cover
+            if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        Rectangle()
+                            .fill(themeColors.textSecondary.opacity(0.2))
+                            .frame(height: 200)
+                            .overlay {
+                                ProgressView()
+                            }
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 200)
+                            .clipped()
+                    case .failure:
+                        Rectangle()
+                            .fill(themeColors.textSecondary.opacity(0.2))
+                            .frame(height: 200)
+                            .overlay {
+                                Image(systemName: "book.fill")
+                                    .font(.largeTitle)
+                                    .foregroundColor(themeColors.textSecondary)
+                            }
+                    @unknown default:
+                        Rectangle()
+                            .fill(themeColors.textSecondary.opacity(0.2))
+                            .frame(height: 200)
+                    }
+                }
+            } else {
+                Rectangle()
+                    .fill(themeColors.textSecondary.opacity(0.2))
+                    .frame(height: 200)
+                    .overlay {
+                        Image(systemName: "book.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(themeColors.textSecondary)
+                    }
+            }
+
+            // Book Info
+            VStack(alignment: .leading, spacing: 4) {
+                if let title = libraryItem.book?.title {
+                    Text(title.decodingHTMLEntities)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+                        .foregroundColor(themeColors.textPrimary)
+                }
+
+                if let author = libraryItem.book?.author {
+                    Text(author.decodingHTMLEntities)
+                        .font(.caption2)
+                        .foregroundColor(themeColors.textSecondary)
+                        .lineLimit(1)
+                }
+
+                // Progress Bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(themeColors.textSecondary.opacity(0.2))
+                            .frame(height: 4)
+                            .cornerRadius(2)
+
+                        Rectangle()
+                            .fill(themeColors.primary)
+                            .frame(width: geometry.size.width * CGFloat(progress), height: 4)
+                            .cornerRadius(2)
+                    }
+                }
+                .frame(height: 4)
+
+                Text("\(Int(progress * 100))% Complete")
+                    .font(.caption2)
+                    .foregroundColor(themeColors.textSecondary)
+            }
+            .padding(8)
+        }
+        .background(themeColors.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(themeColors.border, lineWidth: 1)
+        )
     }
 }
 

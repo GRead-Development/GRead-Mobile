@@ -17,10 +17,15 @@ struct Activity: Codable, Identifiable {
     let userLogin: String?
     let displayName: String?
     let userFullname: String?
-    let userAvatar: String?
+    let userAvatar: UserAvatarUrls?
     let userEmail: String?
     let parent: Int?
     var children: [Activity]?
+
+    struct UserAvatarUrls: Codable {
+        let full: String?
+        let thumb: String?
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, component, type, action, content
@@ -78,7 +83,17 @@ struct Activity: Codable, Identifiable {
         userLogin = try? container.decode(String.self, forKey: .userLogin)
         displayName = try? container.decode(String.self, forKey: .displayName)
         userFullname = try? container.decode(String.self, forKey: .userFullname)
-        userAvatar = try? container.decode(String.self, forKey: .userAvatar)
+
+        // Try decoding userAvatar as object first, then as string for backward compatibility
+        if let avatarUrls = try? container.decode(UserAvatarUrls.self, forKey: .userAvatar) {
+            userAvatar = avatarUrls
+        } else if let avatarString = try? container.decode(String.self, forKey: .userAvatar) {
+            // If it's a string, convert to UserAvatarUrls
+            userAvatar = UserAvatarUrls(full: avatarString, thumb: avatarString)
+        } else {
+            userAvatar = nil
+        }
+
         userEmail = try? container.decode(String.self, forKey: .userEmail)
 
         // Parent and children for threading
@@ -107,11 +122,15 @@ struct Activity: Codable, Identifiable {
     }
 
     // Computed property for avatar URL
-    // Since BuddyPress activity API doesn't include avatars, we use Gravatar
     var avatarURL: String {
         // If we have a user_avatar field from API, use it
-        if let avatar = userAvatar, !avatar.isEmpty {
-            return avatar
+        if let avatar = userAvatar {
+            // Prefer full size, fall back to thumb
+            if let full = avatar.full, !full.isEmpty {
+                return full
+            } else if let thumb = avatar.thumb, !thumb.isEmpty {
+                return thumb
+            }
         }
 
         // Use Gravatar based on email (like WordPress does)

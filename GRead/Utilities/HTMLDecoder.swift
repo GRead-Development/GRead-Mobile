@@ -1,10 +1,17 @@
 import Foundation
+import UIKit
 
 /// Utility for decoding HTML entities in text
 struct HTMLDecoder {
     /// Decode common HTML entities to their character equivalents
     static func decode(_ text: String) -> String {
         var result = text
+
+        // First, handle backslash escaping (JSON escaping)
+        result = result.replacingOccurrences(of: "\\\"", with: "\"")
+        result = result.replacingOccurrences(of: "\\'", with: "'")
+        result = result.replacingOccurrences(of: "\\\\", with: "\\")
+        result = result.replacingOccurrences(of: "\\/", with: "/")
 
         // Common HTML entity replacements
         let entities: [String: String] = [
@@ -22,10 +29,23 @@ struct HTMLDecoder {
             "&lt;": "<",         // Less than
             "&gt;": ">",         // Greater than
             "&nbsp;": " ",       // Non-breaking space
+            "&#39;": "'",        // Apostrophe (numeric)
+            "&#34;": "\"",       // Quote (numeric)
         ]
 
         for (entity, character) in entities {
             result = result.replacingOccurrences(of: entity, with: character)
+        }
+
+        // Use native HTML entity decoding for any remaining entities
+        if let data = result.data(using: .utf8) {
+            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue
+            ]
+            if let attributedString = try? NSAttributedString(data: data, options: options, documentAttributes: nil) {
+                result = attributedString.string
+            }
         }
 
         return result
