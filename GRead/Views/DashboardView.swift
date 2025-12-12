@@ -454,30 +454,18 @@ struct CompactBookCard: View {
             VStack(alignment: .leading, spacing: 8) {
             // Book Cover
             if let coverUrl = item.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                let _ = print("🖼️ Dashboard loading cover for \(item.book?.title ?? "Unknown"): \(coverUrl)")
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(width: 100, height: 140)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 100, height: 140)
-                            .clipped()
-                            .cornerRadius(8)
-                    case .failure(let error):
-                        let _ = print("❌ Dashboard failed to load cover for \(item.book?.title ?? "Unknown"): \(error)")
-                        Image(systemName: "book.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(themeColors.textSecondary)
-                            .frame(width: 100, height: 140)
-                            .background(themeColors.border.opacity(0.3))
-                            .cornerRadius(8)
-                    @unknown default:
-                        EmptyView()
-                    }
+                CachedAsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 100, height: 140)
+                        .clipped()
+                        .cornerRadius(8)
+                } placeholder: {
+                    ProgressView()
+                        .frame(width: 100, height: 140)
+                        .background(themeColors.border.opacity(0.1))
+                        .cornerRadius(8)
                 }
                 .frame(maxWidth: .infinity)
             } else {

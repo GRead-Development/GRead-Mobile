@@ -11,8 +11,17 @@ enum LibraryStatusFilter: String, CaseIterable {
     case all = "All"
     case reading = "Reading"
     case paused = "Paused"
-    case completed = "Completed"
+    case completed = "Done"
     case dnf = "DNF"
+
+    var apiValue: String {
+        switch self {
+        case .completed:
+            return "completed"
+        default:
+            return self.rawValue.lowercased()
+        }
+    }
 }
 
 struct LibraryView: View {
@@ -42,7 +51,7 @@ struct LibraryView: View {
         if statusFilter == .all {
             statusFiltered = items
         } else {
-            statusFiltered = items.filter { $0.status.lowercased() == statusFilter.rawValue.lowercased() }
+            statusFiltered = items.filter { $0.status.lowercased() == statusFilter.apiValue.lowercased() }
         }
 
         // Apply search filter if needed
@@ -323,30 +332,18 @@ struct LibraryItemCard: View {
             HStack(alignment: .top, spacing: 12) {
                 // Book Cover
                 if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                    let _ = print("🖼️ Loading cover for \(libraryItem.book?.title ?? "Unknown"): \(coverUrl)")
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(width: 60, height: 90)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 60, height: 90)
-                                .clipped()
-                                .cornerRadius(6)
-                        case .failure(let error):
-                            let _ = print("❌ Failed to load cover for \(libraryItem.book?.title ?? "Unknown"): \(error)")
-                            Image(systemName: "book.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(themeColors.textSecondary)
-                                .frame(width: 60, height: 90)
-                                .background(themeColors.border.opacity(0.3))
-                                .cornerRadius(6)
-                        @unknown default:
-                            EmptyView()
-                        }
+                    CachedAsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 90)
+                            .clipped()
+                            .cornerRadius(6)
+                    } placeholder: {
+                        ProgressView()
+                            .frame(width: 60, height: 90)
+                            .background(themeColors.border.opacity(0.1))
+                            .cornerRadius(6)
                     }
                 } else {
                     Image(systemName: "book.fill")

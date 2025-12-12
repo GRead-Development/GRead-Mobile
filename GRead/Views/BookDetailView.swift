@@ -62,28 +62,18 @@ struct BookDetailView: View {
                     HStack {
                         Spacer()
                         if let coverUrl = book.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 200, height: 300)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxWidth: 200, maxHeight: 300)
-                                        .cornerRadius(12)
-                                        .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
-                                case .failure:
-                                    Image(systemName: "book.fill")
-                                        .font(.system(size: 80))
-                                        .foregroundColor(themeColors.textSecondary)
-                                        .frame(width: 200, height: 300)
-                                        .background(themeColors.border.opacity(0.3))
-                                        .cornerRadius(12)
-                                @unknown default:
-                                    EmptyView()
-                                }
+                            CachedAsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: 200, maxHeight: 300)
+                                    .cornerRadius(12)
+                                    .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 200, height: 300)
+                                    .background(themeColors.border.opacity(0.1))
+                                    .cornerRadius(12)
                             }
                         } else {
                             Image(systemName: "book.fill")
