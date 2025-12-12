@@ -7,6 +7,14 @@ enum LibrarySortOption: String, CaseIterable {
     case recentlyModified = "Recently Added"
 }
 
+enum LibraryStatusFilter: String, CaseIterable {
+    case all = "All"
+    case reading = "Reading"
+    case paused = "Paused"
+    case completed = "Completed"
+    case dnf = "DNF"
+}
+
 struct LibraryView: View {
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.themeColors) var themeColors
@@ -15,7 +23,7 @@ struct LibraryView: View {
     @State private var showISBNImport = false
     @State private var showBarcodeScanner = false
     @State private var searchText = ""
-    @State private var showCompleted = false
+    @State private var statusFilter: LibraryStatusFilter = .reading
     @State private var listRefreshID = UUID()
     @State private var sortOption: LibrarySortOption = .recentlyModified
 
@@ -29,10 +37,13 @@ struct LibraryView: View {
             return mutableItem
         }
 
-        // Filter by status (reading by default, include completed if toggled)
-        let statusFiltered = showCompleted
-            ? items
-            : items.filter { $0.status == "reading" }
+        // Filter by status
+        let statusFiltered: [LibraryItem]
+        if statusFilter == .all {
+            statusFiltered = items
+        } else {
+            statusFiltered = items.filter { $0.status.lowercased() == statusFilter.rawValue.lowercased() }
+        }
 
         // Apply search filter if needed
         let searchFiltered: [LibraryItem]
@@ -107,21 +118,22 @@ struct LibraryView: View {
                     .frame(maxHeight: .infinity, alignment: .center)
                 } else {
                     VStack(spacing: 0) {
-                        // Search and Show Completed Toggle
+                        // Search and Status Filter
                         VStack(spacing: 12) {
                             SearchBar(text: $searchText)
 
-                            HStack {
-                                Toggle(isOn: $showCompleted) {
-                                    Text("Show Completed Books")
-                                        .font(.subheadline)
-                                        .foregroundColor(themeColors.textPrimary)
+                            // Status Filter Picker
+                            Picker("Status", selection: $statusFilter) {
+                                ForEach(LibraryStatusFilter.allCases, id: \.self) { status in
+                                    Text(status.rawValue).tag(status)
                                 }
-                                .toggleStyle(SwitchToggleStyle(tint: themeColors.success))
+                            }
+                            .pickerStyle(.segmented)
+                            .padding(.horizontal)
 
+                            // Sort Menu
+                            HStack {
                                 Spacer()
-
-                                // Sort Menu
                                 Menu {
                                     ForEach(LibrarySortOption.allCases, id: \.self) { option in
                                         Button(action: {
@@ -274,8 +286,36 @@ struct LibraryItemCard: View {
         libraryItem.status.lowercased() == "completed"
     }
 
+    var isDNF: Bool {
+        libraryItem.status.lowercased() == "dnf"
+    }
+
     var cardBackgroundColor: Color {
-        isCompleted ? themeColors.completedBackground : themeColors.cardBackground
+        if isCompleted {
+            return themeColors.completedBackground
+        } else if isDNF {
+            return themeColors.cardBackground.opacity(0.7)
+        } else {
+            return themeColors.cardBackground
+        }
+    }
+
+    var borderColor: Color {
+        if isCompleted {
+            return themeColors.success.opacity(0.3)
+        } else if isDNF {
+            return Color.red.opacity(0.3)
+        } else {
+            return themeColors.border
+        }
+    }
+
+    var progressBarColor: Color {
+        if isDNF {
+            return Color.red.opacity(0.5)
+        } else {
+            return themeColors.primary
+        }
     }
 
     var body: some View {
@@ -359,28 +399,30 @@ struct LibraryItemCard: View {
                 }
             }
 
-            // Progress Bar
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(themeColors.textSecondary.opacity(0.3))
-                    .frame(maxWidth: .infinity, maxHeight: 8)
+            // Progress Bar (hide for DNF books)
+            if !isDNF {
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(themeColors.textSecondary.opacity(0.3))
+                        .frame(maxWidth: .infinity, maxHeight: 8)
 
-                Capsule()
-                    .fill(themeColors.primary)
-                    .frame(maxWidth: .infinity, maxHeight: 8)
-                    .scaleEffect(x: min(progressPercentage / 100.0, 1.0), anchor: .leading)
+                    Capsule()
+                        .fill(progressBarColor)
+                        .frame(maxWidth: .infinity, maxHeight: 8)
+                        .scaleEffect(x: min(progressPercentage / 100.0, 1.0), anchor: .leading)
+                }
+
+                Text("\(Int(progressPercentage))% complete")
+                    .font(.caption)
+                    .foregroundColor(themeColors.textSecondary)
             }
-
-            Text("\(Int(progressPercentage))% complete")
-                .font(.caption)
-                .foregroundColor(themeColors.textSecondary)
         }
         .padding(14)
         .background(cardBackgroundColor)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isCompleted ? themeColors.success.opacity(0.3) : themeColors.border, lineWidth: 1)
+                .stroke(borderColor, lineWidth: 1)
         )
         .shadow(color: themeColors.shadowColor, radius: 4, x: 0, y: 2)
         .contentShape(Rectangle())
@@ -669,14 +711,26 @@ struct StatusBadge: View {
             return .green
         case "paused":
             return .orange
+        case "dnf":
+            return .red
         default:
             return .gray
         }
     }
 
+    var displayText: String {
+        switch status.lowercased() {
+        case "dnf":
+            return "DNF"
+        default:
+            return status.capitalized
+        }
+    }
+
     var body: some View {
-        Text(status.capitalized)
+        Text(displayText)
             .font(.caption)
+            .fontWeight(.medium)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(statusColor.opacity(0.2))
