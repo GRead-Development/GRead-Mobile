@@ -35,6 +35,8 @@ struct LibraryView: View {
     @State private var statusFilter: LibraryStatusFilter = .reading
     @State private var listRefreshID = UUID()
     @State private var sortOption: LibrarySortOption = .recentlyModified
+    @State private var selectedItem: LibraryItem?
+    @State private var showBookActions = false
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
@@ -175,39 +177,37 @@ struct LibraryView: View {
                         .padding(.vertical, 12)
                         .background(themeColors.cardBackground)
 
-                        // Library Items List
+                        // Library Items Grid
                         ScrollView {
-                            VStack(spacing: 12) {
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 16),
+                                GridItem(.flexible(), spacing: 16),
+                                GridItem(.flexible(), spacing: 16)
+                            ], spacing: 24) {
                                 if libraryManager.isLoading && libraryManager.libraryItems.isEmpty {
                                     ProgressView()
                                         .padding()
-                                }
-
-                                ForEach(filteredItems, id: \.id) { item in
-                                    if let bookId = item.book?.id {
-                                        NavigationLink(destination: BookDetailView(bookId: bookId)) {
-                                            LibraryItemCard(libraryItem: item, onDelete: {
-                                                deleteBook(item)
-                                            }, onProgressUpdate: { newPage in
-                                                updateProgress(item: item, currentPage: newPage)
-                                            })
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                    } else {
-                                        LibraryItemCard(libraryItem: item, onDelete: {
-                                            deleteBook(item)
-                                        }, onProgressUpdate: { newPage in
-                                            updateProgress(item: item, currentPage: newPage)
-                                        })
+                                } else {
+                                    ForEach(filteredItems, id: \.id) { item in
+                                        BookShelfItem(libraryItem: item)
+                                            .onTapGesture {
+                                                selectedItem = item
+                                                showBookActions = true
+                                            }
                                     }
                                 }
-                                .padding()
-
-                                // Bottom padding to prevent tab bar overlap
-                                Color.clear
-                                    .frame(height: 80)
                             }
-                            .id(listRefreshID)
+                            .padding()
+
+                            // Bottom padding to prevent tab bar overlap
+                            Color.clear
+                                .frame(height: 80)
+                        }
+                        .id(listRefreshID)
+                        .sheet(isPresented: $showBookActions) {
+                            if let item = selectedItem {
+                                BookActionsSheet(libraryItem: item, isPresented: $showBookActions)
+                            }
                         }
                     }
                 }
@@ -272,6 +272,216 @@ struct LibraryView: View {
                 try await libraryManager.updateProgress(bookId: bookId, currentPage: currentPage)
             } catch {
                 print("Error updating progress: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - Book Shelf Item
+struct BookShelfItem: View {
+    let libraryItem: LibraryItem
+    @Environment(\.themeColors) var themeColors
+
+    var progressPercentage: Double {
+        guard let totalPages = libraryItem.book?.totalPages, totalPages > 0 else { return 0 }
+        return Double(libraryItem.currentPage) / Double(totalPages)
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            // Book Cover
+            ZStack(alignment: .bottom) {
+                if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                    CachedAsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 180)
+                            .clipped()
+                            .cornerRadius(8)
+                            .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
+                    } placeholder: {
+                        ProgressView()
+                            .frame(height: 180)
+                            .frame(maxWidth: .infinity)
+                            .background(themeColors.border.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                } else {
+                    ZStack {
+                        Rectangle()
+                            .fill(themeColors.border.opacity(0.3))
+                            .frame(height: 180)
+                            .cornerRadius(8)
+
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(themeColors.textSecondary)
+                    }
+                    .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
+                }
+
+                // Progress bar at bottom of cover
+                if libraryItem.status.lowercased() != "dnf" {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Rectangle()
+                                .fill(Color.black.opacity(0.5))
+                                .frame(height: 4)
+
+                            Rectangle()
+                                .fill(themeColors.accent)
+                                .frame(width: geometry.size.width * progressPercentage, height: 4)
+                        }
+                    }
+                    .frame(height: 4)
+                }
+            }
+
+            // Book Title
+            Text(libraryItem.book?.title ?? "Unknown")
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .foregroundColor(themeColors.textPrimary)
+                .frame(height: 32)
+        }
+    }
+}
+
+// MARK: - Book Actions Sheet
+struct BookActionsSheet: View {
+    let libraryItem: LibraryItem
+    @Binding var isPresented: Bool
+    @Environment(\.themeColors) var themeColors
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Book Info Header
+                VStack(spacing: 12) {
+                    if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                        CachedAsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 120, maxHeight: 180)
+                                .cornerRadius(8)
+                                .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
+                        } placeholder: {
+                            ProgressView()
+                                .frame(width: 120, height: 180)
+                        }
+                    }
+
+                    VStack(spacing: 4) {
+                        Text(libraryItem.book?.title ?? "Unknown")
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+
+                        if let author = libraryItem.book?.author {
+                            Text(author)
+                                .font(.subheadline)
+                                .foregroundColor(themeColors.textSecondary)
+                        }
+
+                        StatusBadge(status: libraryItem.status)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(themeColors.cardBackground)
+
+                // Actions List
+                List {
+                    Button(action: {
+                        // Update Progress action
+                    }) {
+                        HStack {
+                            Image(systemName: "book.pages")
+                                .foregroundColor(themeColors.primary)
+                                .frame(width: 30)
+                            Text("Update Progress")
+                                .foregroundColor(themeColors.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(themeColors.textSecondary)
+                                .font(.caption)
+                        }
+                    }
+
+                    Button(action: {
+                        // View Book Page action
+                    }) {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(themeColors.primary)
+                                .frame(width: 30)
+                            Text("View Book Page")
+                                .foregroundColor(themeColors.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(themeColors.textSecondary)
+                                .font(.caption)
+                        }
+                    }
+
+                    Button(action: {
+                        // Notes action
+                    }) {
+                        HStack {
+                            Image(systemName: "note.text")
+                                .foregroundColor(themeColors.primary)
+                                .frame(width: 30)
+                            Text("Notes")
+                                .foregroundColor(themeColors.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(themeColors.textSecondary)
+                                .font(.caption)
+                        }
+                    }
+
+                    Button(action: {
+                        // Change Status action
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundColor(themeColors.primary)
+                                .frame(width: 30)
+                            Text("Change Status")
+                                .foregroundColor(themeColors.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(themeColors.textSecondary)
+                                .font(.caption)
+                        }
+                    }
+
+                    Button(action: {
+                        // Remove from Library action
+                    }) {
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                                .frame(width: 30)
+                            Text("Remove from Library")
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+            .navigationTitle("Book Actions")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                }
             }
         }
     }
