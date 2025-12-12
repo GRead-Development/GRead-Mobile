@@ -32,7 +32,9 @@ struct LibraryView: View {
     @State private var showISBNImport = false
     @State private var showBarcodeScanner = false
     @State private var searchText = ""
-    @State private var statusFilter: LibraryStatusFilter = .reading
+    @State private var showPaused = false
+    @State private var showCompleted = false
+    @State private var showDNF = false
     @State private var listRefreshID = UUID()
     @State private var sortOption: LibrarySortOption = .recentlyModified
     @State private var selectedItem: LibraryItem?
@@ -48,12 +50,22 @@ struct LibraryView: View {
             return mutableItem
         }
 
-        // Filter by status
-        let statusFiltered: [LibraryItem]
-        if statusFilter == .all {
-            statusFiltered = items
-        } else {
-            statusFiltered = items.filter { $0.status.lowercased() == statusFilter.apiValue.lowercased() }
+        // Filter by status - always include reading, plus any toggled statuses
+        let statusFiltered = items.filter { item in
+            let status = item.status.lowercased()
+            if status == "reading" {
+                return true
+            }
+            if status == "paused" && showPaused {
+                return true
+            }
+            if status == "completed" && showCompleted {
+                return true
+            }
+            if status == "dnf" && showDNF {
+                return true
+            }
+            return false
         }
 
         // Apply search filter if needed
@@ -129,22 +141,68 @@ struct LibraryView: View {
                     .frame(maxHeight: .infinity, alignment: .center)
                 } else {
                     VStack(spacing: 0) {
-                        // Search and Status Filter
+                        // Search and Filters
                         VStack(spacing: 12) {
                             SearchBar(text: $searchText)
 
-                            // Status Filter Picker
-                            Picker("Status", selection: $statusFilter) {
-                                ForEach(LibraryStatusFilter.allCases, id: \.self) { status in
-                                    Text(status.rawValue).tag(status)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .padding(.horizontal)
-
-                            // Sort Menu
+                            // Filter and Sort Row
                             HStack {
+                                // Status Filter Menu
+                                Menu {
+                                    Button(action: {
+                                        showPaused.toggle()
+                                    }) {
+                                        HStack {
+                                            Text("Paused")
+                                            if showPaused {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+
+                                    Button(action: {
+                                        showCompleted.toggle()
+                                    }) {
+                                        HStack {
+                                            Text("Completed")
+                                            if showCompleted {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+
+                                    Button(action: {
+                                        showDNF.toggle()
+                                    }) {
+                                        HStack {
+                                            Text("DNF")
+                                            if showDNF {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "line.3.horizontal.decrease.circle")
+                                            .font(.caption)
+                                        Text("Filter")
+                                            .font(.caption)
+                                        if showPaused || showCompleted || showDNF {
+                                            Circle()
+                                                .fill(themeColors.accent)
+                                                .frame(width: 6, height: 6)
+                                        }
+                                    }
+                                    .foregroundColor(themeColors.primary)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(themeColors.primary.opacity(0.1))
+                                    .cornerRadius(8)
+                                }
+
                                 Spacer()
+
+                                // Sort Menu
                                 Menu {
                                     ForEach(LibrarySortOption.allCases, id: \.self) { option in
                                         Button(action: {
@@ -295,15 +353,14 @@ struct BookShelfItem: View {
                     CachedAsyncImage(url: url) { image in
                         image
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(height: 180)
+                            .scaledToFill()
+                            .frame(width: 100, height: 150)
                             .clipped()
                             .cornerRadius(8)
                             .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
                     } placeholder: {
                         ProgressView()
-                            .frame(height: 180)
-                            .frame(maxWidth: .infinity)
+                            .frame(width: 100, height: 150)
                             .background(themeColors.border.opacity(0.1))
                             .cornerRadius(8)
                     }
@@ -311,7 +368,7 @@ struct BookShelfItem: View {
                     ZStack {
                         Rectangle()
                             .fill(themeColors.border.opacity(0.3))
-                            .frame(height: 180)
+                            .frame(width: 100, height: 150)
                             .cornerRadius(8)
 
                         Image(systemName: "book.fill")
@@ -323,20 +380,18 @@ struct BookShelfItem: View {
 
                 // Progress bar at bottom of cover
                 if libraryItem.status.lowercased() != "dnf" {
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.black.opacity(0.5))
-                                .frame(height: 4)
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color.black.opacity(0.5))
+                            .frame(width: 100, height: 4)
 
-                            Rectangle()
-                                .fill(themeColors.accent)
-                                .frame(width: geometry.size.width * progressPercentage, height: 4)
-                        }
+                        Rectangle()
+                            .fill(themeColors.accent)
+                            .frame(width: 100 * progressPercentage, height: 4)
                     }
-                    .frame(height: 4)
                 }
             }
+            .frame(width: 100, height: 150)
 
             // Book Title
             Text(libraryItem.book?.title ?? "Unknown")
