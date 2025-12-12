@@ -580,8 +580,11 @@ struct ProfileView: View {
                                         }
                                         .padding()
                                         .background(themeColors.background)
-                                        .border(themeColors.border, width: 1)
                                         .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(themeColors.border, lineWidth: 1)
+                                        )
                                         .padding(.horizontal)
                                     }
                                 }
@@ -600,8 +603,11 @@ struct ProfileView: View {
                                         }
                                         .padding()
                                         .background(themeColors.background)
-                                        .border(themeColors.border, width: 1)
                                         .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(themeColors.border, lineWidth: 1)
+                                        )
                                         .padding(.horizontal)
                                     }
                                 }
@@ -620,8 +626,11 @@ struct ProfileView: View {
                                         }
                                         .padding()
                                         .background(themeColors.background)
-                                        .border(themeColors.border, width: 1)
                                         .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(themeColors.border, lineWidth: 1)
+                                        )
                                         .padding(.horizontal)
                                     }
                                 }

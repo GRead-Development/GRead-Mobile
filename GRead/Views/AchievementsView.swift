@@ -248,6 +248,7 @@ struct AchievementsView: View {
 struct AchievementCard: View {
     let achievement: Achievement
     @Environment(\.themeColors) var themeColors
+    @State private var showConfetti = false
 
     private var isUnlocked: Bool {
         achievement.isUnlocked ?? false
@@ -255,6 +256,17 @@ struct AchievementCard: View {
 
     private var progressPercentage: Double {
         achievement.progress?.percentage ?? 0
+    }
+
+    private var confettiColors: [Color] {
+        [
+            themeColors.primary,
+            themeColors.secondary,
+            themeColors.accent,
+            Color(red: 1.0, green: 0.84, blue: 0.0), // Gold
+            .green,
+            .purple
+        ]
     }
 
     var body: some View {
@@ -269,6 +281,8 @@ struct AchievementCard: View {
                     .font(.system(size: 30))
                     .opacity(isUnlocked ? 1.0 : 0.5)
             }
+            .scaleEffect(showConfetti ? 1.2 : 1.0)
+            .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showConfetti)
 
             // Details
             VStack(alignment: .leading, spacing: 6) {
@@ -283,6 +297,8 @@ struct AchievementCard: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(themeColors.success)
                             .font(.title3)
+                            .scaleEffect(showConfetti ? 1.3 : 1.0)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showConfetti)
                     }
                 }
 
@@ -337,6 +353,39 @@ struct AchievementCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isUnlocked ? themeColors.success.opacity(0.3) : themeColors.border, lineWidth: 1)
         )
+        .confetti(isActive: $showConfetti, colors: confettiColors, particleCount: 30, duration: 2.5)
+        .onTapGesture {
+            if isUnlocked {
+                triggerCelebration()
+            }
+        }
+        .onAppear {
+            // Trigger confetti for newly unlocked achievements
+            if isUnlocked {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if let dateUnlocked = achievement.dateUnlocked {
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                        if let date = formatter.date(from: dateUnlocked) {
+                            let timeSinceUnlock = Date().timeIntervalSince(date)
+                            // Only show confetti if unlocked within last 5 seconds
+                            if timeSinceUnlock < 5 {
+                                triggerCelebration()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func triggerCelebration() {
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+
+        // Show confetti
+        showConfetti = true
     }
 
     private func hexColor(_ hex: String) -> Color {
