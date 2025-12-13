@@ -18,6 +18,7 @@ struct DashboardView: View {
     @State private var showBarcodeScanner = false
     @State private var selectedBook: LibraryItem?
     @State private var showProgressEditor = false
+    @Namespace private var heroAnimation
 
     var currentlyReading: [LibraryItem] {
         libraryManager.libraryItems.filter { $0.status == "reading" }.prefix(3).map { $0 }
@@ -274,8 +275,8 @@ struct DashboardView: View {
                 HStack(spacing: 12) {
                     ForEach(currentlyReading, id: \.id) { item in
                         if let bookId = item.book?.id {
-                            NavigationLink(destination: BookDetailView(bookId: bookId)) {
-                                CompactBookCard(item: item, onTap: nil)
+                            NavigationLink(destination: BookDetailView(bookId: bookId, heroNamespace: heroAnimation)) {
+                                CompactBookCard(item: item, onTap: nil, heroNamespace: heroAnimation)
                             }
                             .buttonStyle(PlainButtonStyle())
                         } else {
@@ -435,16 +436,22 @@ struct QuickStatCard: View {
 struct CompactBookCard: View {
     let item: LibraryItem
     let onTap: (() -> Void)?
+    var heroNamespace: Namespace.ID?
     @Environment(\.themeColors) var themeColors
 
-    init(item: LibraryItem, onTap: (() -> Void)? = nil) {
+    init(item: LibraryItem, onTap: (() -> Void)? = nil, heroNamespace: Namespace.ID? = nil) {
         self.item = item
         self.onTap = onTap
+        self.heroNamespace = heroNamespace
     }
 
     var progressPercentage: Double {
         guard let totalPages = item.book?.totalPages, totalPages > 0 else { return 0 }
         return Double(item.currentPage) / Double(totalPages)
+    }
+
+    var heroID: String {
+        "bookCover-\(item.book?.id ?? 0)"
     }
 
     var body: some View {
@@ -455,12 +462,24 @@ struct CompactBookCard: View {
             // Book Cover
             if let coverUrl = item.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
                 CachedAsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 100, height: 140)
-                        .clipped()
-                        .cornerRadius(8)
+                    Group {
+                        if let namespace = heroNamespace {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 100, height: 140)
+                                .clipped()
+                                .cornerRadius(8)
+                                .matchedGeometryEffect(id: heroID, in: namespace)
+                        } else {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 100, height: 140)
+                                .clipped()
+                                .cornerRadius(8)
+                        }
+                    }
                 } placeholder: {
                     ProgressView()
                         .frame(width: 100, height: 140)
@@ -469,13 +488,29 @@ struct CompactBookCard: View {
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                Image(systemName: "book.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(themeColors.textSecondary)
-                    .frame(width: 100, height: 140)
-                    .background(themeColors.border.opacity(0.3))
-                    .cornerRadius(8)
-                    .frame(maxWidth: .infinity)
+                Group {
+                    if let namespace = heroNamespace {
+                        ZStack {
+                            Rectangle()
+                                .fill(themeColors.primary)
+                                .frame(width: 100, height: 140)
+                                .cornerRadius(8)
+
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                        .matchedGeometryEffect(id: heroID, in: namespace)
+                    } else {
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(themeColors.textSecondary)
+                            .frame(width: 100, height: 140)
+                            .background(themeColors.border.opacity(0.3))
+                            .cornerRadius(8)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
 
             Text(item.book?.title ?? "Unknown")

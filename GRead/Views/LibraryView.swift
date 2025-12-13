@@ -35,10 +35,12 @@ struct LibraryView: View {
     @State private var showPaused = false
     @State private var showCompleted = false
     @State private var showDNF = false
+    @State private var showFilterMenu = false
     @State private var listRefreshID = UUID()
     @State private var sortOption: LibrarySortOption = .recentlyModified
     @State private var selectedItem: LibraryItem?
     @State private var showBookActions = false
+    @Namespace private var heroAnimation
 
     var filteredItems: [LibraryItem] {
         // Auto-mark as completed if progress equals page count
@@ -147,41 +149,10 @@ struct LibraryView: View {
 
                             // Filter and Sort Row
                             HStack {
-                                // Status Filter Menu
-                                Menu {
-                                    Button(action: {
-                                        showPaused.toggle()
-                                    }) {
-                                        HStack {
-                                            Text("Paused")
-                                            if showPaused {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-
-                                    Button(action: {
-                                        showCompleted.toggle()
-                                    }) {
-                                        HStack {
-                                            Text("Completed")
-                                            if showCompleted {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-
-                                    Button(action: {
-                                        showDNF.toggle()
-                                    }) {
-                                        HStack {
-                                            Text("DNF")
-                                            if showDNF {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                } label: {
+                                // Status Filter Button with Popover
+                                Button(action: {
+                                    showFilterMenu = true
+                                }) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "line.3.horizontal.decrease.circle")
                                             .font(.caption)
@@ -198,6 +169,58 @@ struct LibraryView: View {
                                     .padding(.vertical, 6)
                                     .background(themeColors.primary.opacity(0.1))
                                     .cornerRadius(8)
+                                }
+                                .popover(isPresented: $showFilterMenu, arrowEdge: .bottom) {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Button(action: {
+                                            showPaused.toggle()
+                                        }) {
+                                            HStack {
+                                                Image(systemName: showPaused ? "checkmark.square.fill" : "square")
+                                                    .foregroundColor(showPaused ? themeColors.primary : themeColors.textSecondary)
+                                                Text("Paused")
+                                                    .foregroundColor(themeColors.textPrimary)
+                                                Spacer()
+                                            }
+                                            .padding()
+                                            .background(themeColors.background)
+                                        }
+
+                                        Divider()
+
+                                        Button(action: {
+                                            showCompleted.toggle()
+                                        }) {
+                                            HStack {
+                                                Image(systemName: showCompleted ? "checkmark.square.fill" : "square")
+                                                    .foregroundColor(showCompleted ? themeColors.primary : themeColors.textSecondary)
+                                                Text("Completed")
+                                                    .foregroundColor(themeColors.textPrimary)
+                                                Spacer()
+                                            }
+                                            .padding()
+                                            .background(themeColors.background)
+                                        }
+
+                                        Divider()
+
+                                        Button(action: {
+                                            showDNF.toggle()
+                                        }) {
+                                            HStack {
+                                                Image(systemName: showDNF ? "checkmark.square.fill" : "square")
+                                                    .foregroundColor(showDNF ? themeColors.primary : themeColors.textSecondary)
+                                                Text("DNF")
+                                                    .foregroundColor(themeColors.textPrimary)
+                                                Spacer()
+                                            }
+                                            .padding()
+                                            .background(themeColors.background)
+                                        }
+                                    }
+                                    .frame(width: 200)
+                                    .background(themeColors.background)
+                                    .presentationCompactAdaptation(.popover)
                                 }
 
                                 Spacer()
@@ -247,11 +270,14 @@ struct LibraryView: View {
                                         .padding()
                                 } else {
                                     ForEach(filteredItems, id: \.id) { item in
-                                        BookShelfItem(libraryItem: item)
-                                            .onTapGesture {
-                                                selectedItem = item
-                                                showBookActions = true
+                                        NavigationLink(destination: {
+                                            if let bookId = item.book?.id {
+                                                BookDetailView(bookId: bookId, heroNamespace: heroAnimation)
                                             }
+                                        }) {
+                                            BookShelfItem(libraryItem: item, heroNamespace: heroAnimation)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -261,15 +287,12 @@ struct LibraryView: View {
                             Color.clear
                                 .frame(height: 80)
                         }
+                        .background(themeColors.background)
                         .id(listRefreshID)
-                        .sheet(isPresented: $showBookActions) {
-                            if let item = selectedItem {
-                                BookActionsSheet(libraryItem: item, isPresented: $showBookActions)
-                            }
-                        }
                     }
                 }
             }
+            .background(themeColors.background)
             .navigationTitle("My Library")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -338,12 +361,18 @@ struct LibraryView: View {
 // MARK: - Book Shelf Item
 struct BookShelfItem: View {
     let libraryItem: LibraryItem
+    let heroNamespace: Namespace.ID
     @Environment(\.themeColors) var themeColors
 
     var progressPercentage: Double {
         guard let totalPages = libraryItem.book?.totalPages, totalPages > 0 else { return 0 }
         return Double(libraryItem.currentPage) / Double(totalPages)
     }
+
+    var heroID: String {
+        "bookCover-\(libraryItem.book?.id ?? 0)"
+    }
+
 
     var body: some View {
         VStack(spacing: 8) {
@@ -358,6 +387,7 @@ struct BookShelfItem: View {
                             .clipped()
                             .cornerRadius(8)
                             .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
+                            .matchedGeometryEffect(id: heroID, in: heroNamespace)
                     } placeholder: {
                         ProgressView()
                             .frame(width: 100, height: 150)
@@ -367,15 +397,26 @@ struct BookShelfItem: View {
                 } else {
                     ZStack {
                         Rectangle()
-                            .fill(themeColors.border.opacity(0.3))
+                            .fill(themeColors.primary)
                             .frame(width: 100, height: 150)
                             .cornerRadius(8)
 
-                        Image(systemName: "book.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(themeColors.textSecondary)
+                        VStack(spacing: 8) {
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.white.opacity(0.9))
+
+                            Text(libraryItem.book?.title ?? "Unknown")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(3)
+                                .padding(.horizontal, 8)
+                        }
                     }
                     .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
+                    .matchedGeometryEffect(id: heroID, in: heroNamespace)
                 }
 
                 // Progress bar at bottom of cover
@@ -428,11 +469,34 @@ struct BookActionsSheet: View {
                             ProgressView()
                                 .frame(width: 120, height: 180)
                         }
+                    } else {
+                        ZStack {
+                            Rectangle()
+                                .fill(themeColors.primary)
+                                .frame(width: 120, height: 180)
+                                .cornerRadius(8)
+
+                            VStack(spacing: 8) {
+                                Image(systemName: "book.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.white.opacity(0.9))
+
+                                Text(libraryItem.book?.title ?? "Unknown")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(3)
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                        .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
                     }
 
                     VStack(spacing: 4) {
                         Text(libraryItem.book?.title ?? "Unknown")
                             .font(.headline)
+                            .foregroundColor(themeColors.textPrimary)
                             .multilineTextAlignment(.center)
 
                         if let author = libraryItem.book?.author {
@@ -528,7 +592,10 @@ struct BookActionsSheet: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(themeColors.background)
             }
+            .background(themeColors.background)
             .navigationTitle("Book Actions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -536,6 +603,7 @@ struct BookActionsSheet: View {
                     Button("Done") {
                         isPresented = false
                     }
+                    .foregroundColor(themeColors.primary)
                 }
             }
         }
@@ -718,6 +786,7 @@ struct ProgressEditorSheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Current Progress")
                         .font(.headline)
+                        .foregroundColor(themeColors.textPrimary)
 
                     Text("\(currentPage) / \(totalPages) pages")
                         .font(.title3)
@@ -727,6 +796,7 @@ struct ProgressEditorSheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Update to page:")
                         .font(.headline)
+                        .foregroundColor(themeColors.textPrimary)
 
                     HStack {
                         TextField("Page number", text: $pageInput)
@@ -748,6 +818,7 @@ struct ProgressEditorSheet: View {
                         ),
                         in: 0...Double(totalPages)
                     )
+                    .accentColor(themeColors.primary)
 
                     HStack {
                         Text("0p")
@@ -777,6 +848,7 @@ struct ProgressEditorSheet: View {
                 .disabled(pageInput.isEmpty)
             }
             .padding()
+            .background(themeColors.background)
             .navigationTitle("Update Progress")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -784,6 +856,7 @@ struct ProgressEditorSheet: View {
                     Button("Cancel") {
                         isPresented = false
                     }
+                    .foregroundColor(themeColors.primary)
                 }
             }
         }
@@ -821,6 +894,7 @@ struct AddBookSheet: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(book.title.decodingHTMLEntities)
                                     .font(.headline)
+                                    .foregroundColor(themeColors.textPrimary)
 
                                 if let author = book.author {
                                     Text(author.decodingHTMLEntities)
@@ -841,6 +915,8 @@ struct AddBookSheet: View {
                                 showConfirmation = true
                             }
                         }
+                        .scrollContentBackground(.hidden)
+                        .background(themeColors.background)
                     } else if !searchQuery.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "books.vertical.fill")
@@ -873,6 +949,7 @@ struct AddBookSheet: View {
                         .frame(maxHeight: .infinity, alignment: .center)
                     }
                 }
+                .background(themeColors.background)
                 .navigationTitle("Add Book")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -880,6 +957,7 @@ struct AddBookSheet: View {
                         Button("Cancel") {
                             isPresented = false
                         }
+                        .foregroundColor(themeColors.primary)
                     }
                 }
                 .onChange(of: searchQuery) {
@@ -1021,6 +1099,7 @@ struct ISBNImportSheet: View {
                 VStack(spacing: 12) {
                     Text("Import by ISBN")
                         .font(.headline)
+                        .foregroundColor(themeColors.textPrimary)
                         .padding(.top)
 
                     VStack(spacing: 12) {
@@ -1062,6 +1141,7 @@ struct ISBNImportSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(book.title.decodingHTMLEntities)
                                 .font(.headline)
+                                .foregroundColor(themeColors.textPrimary)
 
                             if let author = book.author {
                                 Text(author.decodingHTMLEntities)
@@ -1081,6 +1161,8 @@ struct ISBNImportSheet: View {
                             showConfirmation = true
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .background(themeColors.background)
                 } else if !isbnInput.isEmpty && !isSearching && errorMessage == nil {
                     VStack(spacing: 16) {
                         Image(systemName: "books.vertical.fill")
@@ -1102,6 +1184,7 @@ struct ISBNImportSheet: View {
 
                 Spacer()
             }
+            .background(themeColors.background)
             .navigationTitle("Import by ISBN")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1109,6 +1192,7 @@ struct ISBNImportSheet: View {
                     Button("Cancel") {
                         isPresented = false
                     }
+                    .foregroundColor(themeColors.primary)
                 }
             }
             .alert("Add Book", isPresented: $showConfirmation, actions: {

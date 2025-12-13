@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BookDetailView: View {
     let bookId: Int
+    let heroNamespace: Namespace.ID
     @Environment(\.themeColors) var themeColors
     @Environment(\.dismiss) var dismiss
     @ObservedObject var libraryManager = LibraryManager.shared
@@ -18,6 +19,10 @@ struct BookDetailView: View {
 
     var isInLibrary: Bool {
         libraryItem != nil
+    }
+
+    var heroID: String {
+        "bookCover-\(bookId)"
     }
 
     var body: some View {
@@ -69,6 +74,7 @@ struct BookDetailView: View {
                                     .frame(maxWidth: 200, maxHeight: 300)
                                     .cornerRadius(12)
                                     .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
+                                    .matchedGeometryEffect(id: heroID, in: heroNamespace)
                             } placeholder: {
                                 ProgressView()
                                     .frame(width: 200, height: 300)
@@ -76,12 +82,30 @@ struct BookDetailView: View {
                                     .cornerRadius(12)
                             }
                         } else {
-                            Image(systemName: "book.fill")
-                                .font(.system(size: 80))
-                                .foregroundColor(themeColors.textSecondary)
-                                .frame(width: 200, height: 300)
-                                .background(themeColors.border.opacity(0.3))
-                                .cornerRadius(12)
+                            ZStack {
+                                Rectangle()
+                                    .fill(themeColors.primary)
+                                    .frame(width: 200, height: 300)
+                                    .cornerRadius(12)
+
+                                VStack(spacing: 8) {
+                                    Image(systemName: "book.fill")
+                                        .font(.system(size: 80))
+                                        .foregroundColor(.white.opacity(0.9))
+
+                                    if let title = bookDetail?.title {
+                                        Text(title)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(3)
+                                            .padding(.horizontal, 12)
+                                    }
+                                }
+                            }
+                            .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
+                            .matchedGeometryEffect(id: heroID, in: heroNamespace)
                         }
                         Spacer()
                     }
@@ -445,7 +469,8 @@ struct AddToLibrarySheet: View {
 }
 
 #Preview {
-    NavigationView {
-        BookDetailView(bookId: 123)
+    @Namespace var namespace
+    return NavigationView {
+        BookDetailView(bookId: 123, heroNamespace: namespace)
     }
 }

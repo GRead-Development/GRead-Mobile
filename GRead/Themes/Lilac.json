@@ -1,0 +1,13 @@
+{
+  "id": "lilac",
+  "name": "Lilac",
+  "description": "Earn 5,000 points.",
+  "primary_color": "#6E8CFB",
+  "secondary_color": "#636CCB",
+  "accent_color": "#50589C",
+  "background_color": "#3C467B",
+  "unlock_requirement": {
+    "stat": "points",
+    "value": 5000
+  }
+}

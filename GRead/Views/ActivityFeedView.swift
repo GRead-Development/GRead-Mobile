@@ -71,9 +71,13 @@ struct ActivityFeedView: View {
                                         deleteActivity(activityToDelete)
                                     }
                                 )
+                                .listRowBackground(themeColors.cardBackground)
+                                .listRowSeparator(.hidden)
 
                                 if activity.id == organizedActivities.last?.id && hasMorePages && !isLoading {
                                     ProgressView()
+                                        .listRowBackground(Color.clear)
+                                        .listRowSeparator(.hidden)
                                         .onAppear {
                                             Task {
                                                 await loadMoreActivities()
@@ -89,6 +93,8 @@ struct ActivityFeedView: View {
                                 .listRowBackground(Color.clear)
                         }
                         .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .background(themeColors.background)
                         .refreshable {
                             page = 1
                             hasMorePages = true
@@ -425,7 +431,7 @@ struct ThreadedActivityView: View {
     @Environment(\.themeColors) var themeColors
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
             // Main post
             ActivityRowView(
                 activity: activity,
@@ -463,6 +469,7 @@ struct ThreadedActivityView: View {
                 }
             }
         }
+        .padding(.vertical, 8)
     }
 }
 
@@ -595,9 +602,9 @@ struct ActivityRowView: View {
                         Text(activity.bestUserName)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundColor(themeColors.textPrimary)
                     }
-                    
+
                     HStack(spacing: 4) {
                         if let type = activity.type {
                             Text(type.replacingOccurrences(of: "_", with: " ").capitalized)
@@ -619,14 +626,15 @@ struct ActivityRowView: View {
 
                 Spacer()
             }
-            
+
             if let content = activity.content, !content.isEmpty {
                 Text(content.decodingHTMLEntities.stripHTML())
                     .font(.body)
+                    .foregroundColor(themeColors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
-            
+
             // Only show comment button for top-level posts
             if indentLevel == 0 {
                 HStack(spacing: 20) {
@@ -646,7 +654,7 @@ struct ActivityRowView: View {
                 .padding(.top, 4)
             }
         }
-        .padding(.vertical, 8)
+        .padding(12)
     }
 }
 
@@ -667,12 +675,15 @@ struct CommentView: View {
             HStack {
                 Text("Comments")
                     .font(.headline)
+                    .foregroundColor(themeColors.textPrimary)
                 Spacer()
                 Button("Done") {
                     dismiss()
                 }
+                .foregroundColor(themeColors.primary)
             }
             .padding()
+            .background(themeColors.cardBackground)
 
             Divider()
 
@@ -683,8 +694,9 @@ struct CommentView: View {
                         Text(content.stripHTML())
                             .font(.body)
                             .fontWeight(.medium)
+                            .foregroundColor(themeColors.textPrimary)
                             .padding()
-                            .background(themeColors.textSecondary.opacity(0.1))
+                            .background(themeColors.cardBackground)
                             .cornerRadius(8)
                     }
 
@@ -733,14 +745,16 @@ struct CommentView: View {
                 }
                 .padding()
             }
+            .background(themeColors.background)
 
             Divider()
 
             HStack(spacing: 12) {
                 TextField("Add a comment...", text: $commentText, axis: .vertical)
                     .textFieldStyle(.plain)
+                    .foregroundColor(themeColors.textPrimary)
                     .padding(12)
-                    .background(themeColors.textSecondary.opacity(0.1))
+                    .background(themeColors.cardBackground)
                     .cornerRadius(20)
                     .lineLimit(1...5)
 
@@ -759,7 +773,9 @@ struct CommentView: View {
                 .animation(.easeInOut(duration: 0.2), value: isPosting)
             }
             .padding()
+            .background(themeColors.cardBackground)
         }
+        .background(themeColors.background)
         .task {
             await loadUsersForComments()
         }
@@ -904,7 +920,7 @@ struct CommentItemView: View {
                         Text(comment.bestUserName)
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(.primary)
+                            .foregroundColor(themeColors.textPrimary)
                     }
 
                     if let date = comment.dateRecorded {
@@ -920,6 +936,7 @@ struct CommentItemView: View {
             if let content = comment.content {
                 Text(content.decodingHTMLEntities.stripHTML())
                     .font(.caption)
+                    .foregroundColor(themeColors.textPrimary)
                     .lineLimit(nil)
             }
 
@@ -962,9 +979,11 @@ struct NewActivityView: View {
                 Button("Cancel") {
                     dismiss()
                 }
+                .foregroundColor(themeColors.primary)
                 Spacer()
                 Text("New Post")
                     .font(.headline)
+                    .foregroundColor(themeColors.textPrimary)
                 Spacer()
                 Button {
                     postActivity()
@@ -976,9 +995,11 @@ struct NewActivityView: View {
                             .fontWeight(.semibold)
                     }
                 }
+                .foregroundColor(themeColors.primary)
                 .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isPosting)
             }
             .padding()
+            .background(themeColors.cardBackground)
 
             Divider()
 
@@ -998,6 +1019,7 @@ struct NewActivityView: View {
 
             Spacer()
         }
+        .background(themeColors.background)
         .padding()
     }
     
