@@ -56,6 +56,24 @@ class DashboardManager: ObservableObject {
     }
 
     private func loadStats(userId: Int) async {
+        // Guest mode: Generate local stats
+        if AuthManager.shared.isGuestMode {
+            await MainActor.run {
+                let localStats = LibraryManager.shared.getLocalStats()
+                stats = UserStats(
+                    id: 0,
+                    points: localStats.points,
+                    booksCompleted: localStats.booksCompleted,
+                    pagesRead: localStats.pagesRead,
+                    booksAdded: localStats.booksAdded,
+                    approvedReports: 0
+                )
+                print("📊 Guest mode: Generated local stats")
+            }
+            return
+        }
+
+        // Authenticated mode: Load from server
         do {
             let loadedStats = try await APIManager.shared.getUserStats(userId: userId)
             await MainActor.run {
@@ -91,6 +109,16 @@ class DashboardManager: ObservableObject {
     }
 
     private func loadAchievements(userId: Int) async {
+        // Guest mode: No achievements
+        if AuthManager.shared.isGuestMode {
+            await MainActor.run {
+                achievements = []
+                print("📊 Guest mode: Achievements not available")
+            }
+            return
+        }
+
+        // Authenticated mode: Load from server
         do {
             let response = try await APIManager.shared.getUserAchievements(userId: userId, filter: "unlocked")
             await MainActor.run {

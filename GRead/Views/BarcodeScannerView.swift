@@ -185,8 +185,25 @@ struct BarcodeScannerView: View {
             throw NSError(domain: "BookNotFound", code: 404, userInfo: nil)
         }
 
+        // Guest mode: Create Book object from OpenLibrary data without importing to database
+        if authManager.isGuestMode {
+            Logger.debug("Found book on OpenLibrary: \(bookData.title) (Guest mode - not importing to database)")
+            // Create a local Book object from OpenLibrary data
+            let book = Book(
+                id: isbn.hashValue, // Use hash of ISBN as temporary ID for local storage
+                title: bookData.title,
+                author: bookData.authors?.first?.name,
+                description: bookData.notes ?? bookData.subtitle,
+                coverUrl: bookData.cover?.large ?? bookData.cover?.medium ?? bookData.cover?.small,
+                totalPages: bookData.numberOfPages,
+                isbn: isbn,
+                publishedDate: bookData.publishDate
+            )
+            return book
+        }
+
+        // Authenticated: Import the book to GRead database
         Logger.debug("Found book on OpenLibrary: \(bookData.title), importing to GRead...")
-        // Import the book to GRead database
         let importedBook = try await APIManager.shared.importBookFromOpenLibrary(openLibraryBookData: bookData)
         Logger.debug("Successfully imported book with ID: \(importedBook.id)")
         return importedBook
@@ -207,15 +224,10 @@ struct BarcodeScannerView: View {
         Logger.debug("Adding book to library: \(book.title) (ID: \(book.id))")
         Task {
             do {
-                try await APIManager.shared.addBookToLibrary(
-                    bookId: book.id,
-                    status: "reading",
-                    currentPage: 0
-                )
+                // Use LibraryManager which handles both guest and authenticated modes
+                try await LibraryManager.shared.addBook(book, status: "reading")
 
-                Logger.debug("Book added to library successfully, refreshing cache")
-                // Refresh library cache
-                await LibraryManager.shared.loadLibrary()
+                Logger.debug("Book added to library successfully")
 
                 await MainActor.run {
                     Logger.debug("Dismissing sheet and showing success message")

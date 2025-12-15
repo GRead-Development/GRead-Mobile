@@ -391,7 +391,7 @@ struct DashboardView: View {
 
     // MARK: - Data Loading
     private func loadAllDataIfNeeded() async {
-        guard let userId = authManager.currentUser?.id else { return }
+        let userId = authManager.currentUser?.id ?? 0 // Use 0 for guest users
 
         async let dashboardTask = dashboardManager.loadDashboardIfNeeded(userId: userId)
         async let libraryTask = libraryManager.loadLibraryIfNeeded()
@@ -406,7 +406,7 @@ struct DashboardView: View {
     }
 
     private func loadAllData() async {
-        guard let userId = authManager.currentUser?.id else { return }
+        let userId = authManager.currentUser?.id ?? 0 // Use 0 for guest users
 
         async let dashboardTask = dashboardManager.loadDashboard(userId: userId)
         async let libraryTask = libraryManager.loadLibrary()
