@@ -3,6 +3,7 @@ import SwiftUI
 struct BookDetailView: View {
     let bookId: Int
     let heroNamespace: Namespace.ID
+    let heroID: String
     @Environment(\.themeColors) var themeColors
     @Environment(\.dismiss) var dismiss
     @ObservedObject var libraryManager = LibraryManager.shared
@@ -19,10 +20,6 @@ struct BookDetailView: View {
 
     var isInLibrary: Bool {
         libraryItem != nil
-    }
-
-    var heroID: String {
-        "bookCover-\(bookId)"
     }
 
     var body: some View {
@@ -66,47 +63,49 @@ struct BookDetailView: View {
                     // Cover Image Section
                     HStack {
                         Spacer()
-                        if let coverUrl = book.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                            CachedAsyncImage(url: url) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(maxWidth: 200, maxHeight: 300)
-                                    .cornerRadius(12)
-                                    .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
-                                    .matchedGeometryEffect(id: heroID, in: heroNamespace)
-                            } placeholder: {
-                                ProgressView()
-                                    .frame(width: 200, height: 300)
-                                    .background(themeColors.border.opacity(0.1))
-                                    .cornerRadius(12)
-                            }
-                        } else {
-                            ZStack {
-                                Rectangle()
-                                    .fill(themeColors.primary)
-                                    .frame(width: 200, height: 300)
-                                    .cornerRadius(12)
+                        ZStack {
+                            if let coverUrl = book.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                                CachedAsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxWidth: 200, maxHeight: 300)
+                                        .cornerRadius(12)
+                                        .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
+                                } placeholder: {
+                                    ProgressView()
+                                        .frame(width: 200, height: 300)
+                                        .background(themeColors.border.opacity(0.1))
+                                        .cornerRadius(12)
+                                }
+                            } else {
+                                ZStack {
+                                    Rectangle()
+                                        .fill(themeColors.primary)
+                                        .frame(width: 200, height: 300)
+                                        .cornerRadius(12)
 
-                                VStack(spacing: 8) {
-                                    Image(systemName: "book.fill")
-                                        .font(.system(size: 80))
-                                        .foregroundColor(.white.opacity(0.9))
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "book.fill")
+                                            .font(.system(size: 80))
+                                            .foregroundColor(.white.opacity(0.9))
 
-                                    if let title = bookDetail?.title {
-                                        Text(title)
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.white)
-                                            .multilineTextAlignment(.center)
-                                            .lineLimit(3)
-                                            .padding(.horizontal, 12)
+                                        if let title = bookDetail?.title {
+                                            Text(title)
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(3)
+                                                .padding(.horizontal, 12)
+                                        }
                                     }
                                 }
+                                .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
                             }
-                            .shadow(color: themeColors.shadowColor, radius: 8, x: 0, y: 4)
-                            .matchedGeometryEffect(id: heroID, in: heroNamespace)
                         }
+                        .frame(width: 200, height: 300)
+                        .matchedGeometryEffect(id: heroID, in: heroNamespace)
                         Spacer()
                     }
                     .padding(.bottom)
@@ -471,6 +470,6 @@ struct AddToLibrarySheet: View {
 #Preview {
     @Namespace var namespace
     return NavigationView {
-        BookDetailView(bookId: 123, heroNamespace: namespace)
+        BookDetailView(bookId: 123, heroNamespace: namespace, heroID: "preview-bookCover-123")
     }
 }

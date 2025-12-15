@@ -275,12 +275,18 @@ struct DashboardView: View {
                 HStack(spacing: 12) {
                     ForEach(currentlyReading, id: \.id) { item in
                         if let bookId = item.book?.id {
-                            NavigationLink(destination: BookDetailView(bookId: bookId, heroNamespace: heroAnimation)) {
+                            NavigationLink(destination: BookDetailView(
+                                bookId: bookId,
+                                heroNamespace: heroAnimation,
+                                heroID: "dashboard-bookCover-\(bookId)"
+                            )) {
                                 CompactBookCard(item: item, onTap: nil, heroNamespace: heroAnimation)
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .id("dashboard-item-\(item.id)")
                         } else {
                             CompactBookCard(item: item, onTap: nil)
+                                .id("dashboard-item-\(item.id)")
                         }
                     }
                 }
@@ -451,7 +457,7 @@ struct CompactBookCard: View {
     }
 
     var heroID: String {
-        "bookCover-\(item.book?.id ?? 0)"
+        "dashboard-bookCover-\(item.book?.id ?? 0)"
     }
 
     var body: some View {
@@ -460,58 +466,37 @@ struct CompactBookCard: View {
         }) {
             VStack(alignment: .leading, spacing: 8) {
             // Book Cover
-            if let coverUrl = item.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                CachedAsyncImage(url: url) { image in
-                    Group {
-                        if let namespace = heroNamespace {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 100, height: 140)
-                                .clipped()
-                                .cornerRadius(8)
-                                .matchedGeometryEffect(id: heroID, in: namespace)
-                        } else {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 100, height: 140)
-                                .clipped()
-                                .cornerRadius(8)
-                        }
-                    }
-                } placeholder: {
-                    ProgressView()
-                        .frame(width: 100, height: 140)
-                        .background(themeColors.border.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .frame(maxWidth: .infinity)
-            } else {
-                Group {
-                    if let namespace = heroNamespace {
-                        ZStack {
-                            Rectangle()
-                                .fill(themeColors.primary)
-                                .frame(width: 100, height: 140)
-                                .cornerRadius(8)
-
-                            Image(systemName: "book.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                        .matchedGeometryEffect(id: heroID, in: namespace)
-                    } else {
-                        Image(systemName: "book.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(themeColors.textSecondary)
+            ZStack {
+                if let coverUrl = item.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                    CachedAsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
                             .frame(width: 100, height: 140)
-                            .background(themeColors.border.opacity(0.3))
+                            .clipped()
+                            .cornerRadius(8)
+                    } placeholder: {
+                        ProgressView()
+                            .frame(width: 100, height: 140)
+                            .background(themeColors.border.opacity(0.1))
                             .cornerRadius(8)
                     }
+                } else {
+                    ZStack {
+                        Rectangle()
+                            .fill(themeColors.primary)
+                            .frame(width: 100, height: 140)
+                            .cornerRadius(8)
+
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
                 }
-                .frame(maxWidth: .infinity)
             }
+            .frame(width: 100, height: 140)
+            .frame(maxWidth: .infinity)
+            .modifier(ConditionalHeroEffect(namespace: heroNamespace, id: heroID))
 
             Text(item.book?.title ?? "Unknown")
                 .font(.subheadline)
@@ -630,6 +615,20 @@ struct CompactAchievementCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke((achievement.isUnlocked ?? false) ? themeColors.warning.opacity(0.5) : themeColors.border, lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Conditional Hero Effect Modifier
+struct ConditionalHeroEffect: ViewModifier {
+    let namespace: Namespace.ID?
+    let id: String
+
+    func body(content: Content) -> some View {
+        if let namespace = namespace {
+            content.matchedGeometryEffect(id: id, in: namespace)
+        } else {
+            content
+        }
     }
 }
 

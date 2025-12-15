@@ -272,12 +272,17 @@ struct LibraryView: View {
                                     ForEach(filteredItems, id: \.id) { item in
                                         NavigationLink(destination: {
                                             if let bookId = item.book?.id {
-                                                BookDetailView(bookId: bookId, heroNamespace: heroAnimation)
+                                                BookDetailView(
+                                                    bookId: bookId,
+                                                    heroNamespace: heroAnimation,
+                                                    heroID: "library-bookCover-\(bookId)"
+                                                )
                                             }
                                         }) {
                                             BookShelfItem(libraryItem: item, heroNamespace: heroAnimation)
                                         }
                                         .buttonStyle(.plain)
+                                        .id("library-item-\(item.id)")
                                     }
                                 }
                             }
@@ -370,7 +375,7 @@ struct BookShelfItem: View {
     }
 
     var heroID: String {
-        "bookCover-\(libraryItem.book?.id ?? 0)"
+        "library-bookCover-\(libraryItem.book?.id ?? 0)"
     }
 
 
@@ -378,46 +383,48 @@ struct BookShelfItem: View {
         VStack(spacing: 8) {
             // Book Cover
             ZStack(alignment: .bottom) {
-                if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
-                    CachedAsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 100, height: 150)
-                            .clipped()
-                            .cornerRadius(8)
-                            .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
-                            .matchedGeometryEffect(id: heroID, in: heroNamespace)
-                    } placeholder: {
-                        ProgressView()
-                            .frame(width: 100, height: 150)
-                            .background(themeColors.border.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-                } else {
-                    ZStack {
-                        Rectangle()
-                            .fill(themeColors.primary)
-                            .frame(width: 100, height: 150)
-                            .cornerRadius(8)
-
-                        VStack(spacing: 8) {
-                            Image(systemName: "book.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.white.opacity(0.9))
-
-                            Text(libraryItem.book?.title ?? "Unknown")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(3)
-                                .padding(.horizontal, 8)
+                ZStack {
+                    if let coverUrl = libraryItem.book?.effectiveCoverUrl, let url = URL(string: coverUrl) {
+                        CachedAsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 100, height: 150)
+                                .clipped()
+                                .cornerRadius(8)
+                                .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
+                        } placeholder: {
+                            ProgressView()
+                                .frame(width: 100, height: 150)
+                                .background(themeColors.border.opacity(0.1))
+                                .cornerRadius(8)
                         }
+                    } else {
+                        ZStack {
+                            Rectangle()
+                                .fill(themeColors.primary)
+                                .frame(width: 100, height: 150)
+                                .cornerRadius(8)
+
+                            VStack(spacing: 8) {
+                                Image(systemName: "book.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.white.opacity(0.9))
+
+                                Text(libraryItem.book?.title ?? "Unknown")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(3)
+                                    .padding(.horizontal, 8)
+                            }
+                        }
+                        .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
                     }
-                    .shadow(color: themeColors.shadowColor, radius: 6, x: 0, y: 3)
-                    .matchedGeometryEffect(id: heroID, in: heroNamespace)
                 }
+                .frame(width: 100, height: 150)
+                .matchedGeometryEffect(id: heroID, in: heroNamespace)
 
                 // Progress bar at bottom of cover
                 if libraryItem.status.lowercased() != "dnf" {
