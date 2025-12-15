@@ -14,6 +14,7 @@ struct DashboardView: View {
     @ObservedObject var dashboardManager = DashboardManager.shared
     @ObservedObject var libraryManager = LibraryManager.shared
     @ObservedObject var profileManager = ProfileManager.shared
+    @ObservedObject var guidesManager = GuidesManager.shared
     @State private var refreshID = UUID()
     @State private var showBarcodeScanner = false
     @State private var selectedBook: LibraryItem?
@@ -55,6 +56,11 @@ struct DashboardView: View {
 
                 // Quick Actions
                 quickActionsSection
+
+                // How to use GRead - Guides Section
+                if !guidesManager.featuredGuides.isEmpty {
+                    guidesSection
+                }
 
                 // Currently Reading Section
                 if !currentlyReading.isEmpty {
@@ -253,6 +259,38 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: - Guides Section
+    private var guidesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("How to use GRead")
+                    .font(.headline)
+                    .foregroundColor(themeColors.textPrimary)
+
+                Spacer()
+
+                NavigationLink(destination: GuidesListView()) {
+                    Text("View All")
+                        .font(.caption)
+                        .foregroundColor(themeColors.primary)
+                }
+            }
+            .padding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(guidesManager.featuredGuides) { guide in
+                        NavigationLink(destination: GuideDetailView(guide: guide)) {
+                            CompactGuideCard(guide: guide)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
     // MARK: - Currently Reading Section
     private var currentlyReadingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -353,13 +391,14 @@ struct DashboardView: View {
 
     // MARK: - Data Loading
     private func loadAllDataIfNeeded() async {
-        guard let userId = authManager.currentUser?.id else { return }
+        let userId = authManager.currentUser?.id ?? 0 // Use 0 for guest users
 
         async let dashboardTask = dashboardManager.loadDashboardIfNeeded(userId: userId)
         async let libraryTask = libraryManager.loadLibraryIfNeeded()
         async let profileTask = profileManager.loadProfileIfNeeded()
+        async let guidesTask = guidesManager.loadGuidesIfNeeded()
 
-        _ = await [dashboardTask, libraryTask, profileTask]
+        _ = await [dashboardTask, libraryTask, profileTask, guidesTask]
 
         await MainActor.run {
             refreshID = UUID()
@@ -367,13 +406,14 @@ struct DashboardView: View {
     }
 
     private func loadAllData() async {
-        guard let userId = authManager.currentUser?.id else { return }
+        let userId = authManager.currentUser?.id ?? 0 // Use 0 for guest users
 
         async let dashboardTask = dashboardManager.loadDashboard(userId: userId)
         async let libraryTask = libraryManager.loadLibrary()
         async let profileTask = profileManager.loadProfile()
+        async let guidesTask = guidesManager.loadGuides()
 
-        _ = await [dashboardTask, libraryTask, profileTask]
+        _ = await [dashboardTask, libraryTask, profileTask, guidesTask]
 
         await MainActor.run {
             refreshID = UUID()
@@ -614,6 +654,70 @@ struct CompactAchievementCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke((achievement.isUnlocked ?? false) ? themeColors.warning.opacity(0.5) : themeColors.border, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Compact Guide Card
+struct CompactGuideCard: View {
+    let guide: Guide
+    @Environment(\.themeColors) var themeColors
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Icon
+            HStack {
+                Image(systemName: guide.icon)
+                    .font(.system(size: 30))
+                    .foregroundColor(themeColors.primary)
+                    .frame(width: 50, height: 50)
+                    .background(
+                        LinearGradient(
+                            colors: [themeColors.primary.opacity(0.2), themeColors.primary.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(10)
+
+                Spacer()
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 6) {
+                Text(guide.title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(themeColors.textPrimary)
+                    .lineLimit(2)
+                    .frame(height: 40)
+
+                Text(guide.description)
+                    .font(.caption)
+                    .foregroundColor(themeColors.textSecondary)
+                    .lineLimit(3)
+                    .frame(height: 45)
+            }
+
+            Spacer()
+
+            // Read more indicator
+            HStack {
+                Text("Read more")
+                    .font(.caption2)
+                    .foregroundColor(themeColors.primary)
+                Image(systemName: "arrow.right")
+                    .font(.caption2)
+                    .foregroundColor(themeColors.primary)
+            }
+        }
+        .padding()
+        .frame(width: 180, height: 200)
+        .background(themeColors.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(themeColors.border, lineWidth: 1)
         )
     }
 }

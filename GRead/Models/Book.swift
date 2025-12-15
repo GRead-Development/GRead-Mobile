@@ -13,7 +13,7 @@ struct Book: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, title, author
         case description = "content"
-        case coverUrl = "cover_url"
+        case coverUrl = "cover_image"
         case totalPages = "page_count"
         case isbn
         case publishedDate = "published_date"
